@@ -132,4 +132,23 @@ declare namespace Api {
         Api.Common.CommonSearchParams
     >
   }
+
+  /** Funboost类型 */
+  namespace Funboost {
+    /** 关注项目名称数据 */
+    interface CareProjectNameData {
+      care_project_name: string | null
+    }
+
+    /** 设置关注项目名称参数 */
+    interface SetCareProjectNameParams {
+      care_project_name: string
+    }
+
+    /** 所有项目名称数据 */
+    interface AllProjectNamesData {
+      project_names: string[]
+      count: number
+    }
+  }
 }

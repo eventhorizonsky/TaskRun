@@ -77,15 +77,32 @@
             <span class="ml-0.5 text-xs">k</span>
           </div>
         </div>
+        <!-- 关注项目选择 -->
+        <ElDropdown
+          v-if="shouldShowProjectSelector"
+          @command="setCareProject"
+          popper-class="projectDropDownStyle"
+        >
+          <ArtIconButton icon="ri:folder-line" class="project-btn"></ArtIconButton>
+          <template #dropdown>
+            <ElDropdownMenu>
+              <ElDropdownItem command="">
+                <span class="menu-txt">{{ $t('topBar.project.all') }}</span>
+                <ArtSvgIcon icon="ri:check-fill" v-if="!currentCareProject" />
+              </ElDropdownItem>
+              <ElDropdownItem
+                v-for="project in projectList"
+                :key="project"
+                :command="project"
+                :class="{ 'is-selected': currentCareProject === project }"
+              >
+                <span class="menu-txt">{{ project }}</span>
+                <ArtSvgIcon icon="ri:check-fill" v-if="currentCareProject === project" />
+              </ElDropdownItem>
+            </ElDropdownMenu>
+          </template>
+        </ElDropdown>
 
-        <!-- 全屏按钮 -->
-        <ArtIconButton
-          v-if="shouldShowFullscreen"
-          :icon="isFullscreen ? 'ri:fullscreen-exit-line' : 'ri:fullscreen-fill'"
-          :class="[!isFullscreen ? 'full-screen-btn' : 'exit-full-screen-btn', 'ml-3']"
-          class="max-md:!hidden"
-          @click="toggleFullScreen"
-        />
 
         <!-- 国际化按钮 -->
         <ElDropdown
@@ -148,6 +165,8 @@
           </ElPopover>
         </div>
 
+
+
         <!-- 主题切换按钮 -->
         <ArtIconButton
           v-if="shouldShowThemeToggle"
@@ -182,6 +201,7 @@
   import { themeAnimation } from '@/utils/ui/animation'
   import { useCommon } from '@/hooks/core/useCommon'
   import { useHeaderBar } from '@/hooks/core/useHeaderBar'
+  import { fetchGetCareProjectName, fetchSetCareProjectName, fetchGetAllProjectNames } from '@/api/funboost'
   import ArtUserMenu from './widget/ArtUserMenu.vue'
 
   defineOptions({ name: 'ArtHeaderBar' })
@@ -210,7 +230,7 @@
     shouldShowLanguage,
     shouldShowSettings,
     shouldShowThemeToggle,
-    fastEnterMinWidth: headerBarFastEnterMinWidth
+    shouldShowProjectSelector
   } = useHeaderBar()
 
   const { menuOpen, systemThemeColor, showSettingGuide, menuType, isDark, tabStyle } =
@@ -222,6 +242,10 @@
   const showNotice = ref(false)
   const notice = ref(null)
 
+  // 项目相关状态
+  const currentCareProject = ref<string | null>(null)
+  const projectList = ref<string[]>([])
+
   // 菜单类型判断
   const isLeftMenu = computed(() => menuType.value === MenuTypeEnum.LEFT)
   const isDualMenu = computed(() => menuType.value === MenuTypeEnum.DUAL_MENU)
@@ -232,6 +256,7 @@
 
   onMounted(() => {
     initLanguage()
+    initProjectData()
     document.addEventListener('click', bodyCloseNotice)
   })
 
@@ -278,6 +303,37 @@
    */
   const initLanguage = (): void => {
     locale.value = language.value
+  }
+
+  /**
+   * 初始化项目数据
+   */
+  const initProjectData = async (): Promise<void> => {
+    try {
+      // 获取当前关注项目
+      const careRes = await fetchGetCareProjectName()
+      currentCareProject.value = careRes.care_project_name || null
+
+      // 获取所有项目列表
+      const listRes = await fetchGetAllProjectNames()
+      projectList.value = listRes.project_names || []
+    } catch (error) {
+      console.error('初始化项目数据失败:', error)
+    }
+  }
+
+  /**
+   * 设置关注项目
+   * @param projectName 项目名称，空字符串表示不限制
+   */
+  const setCareProject = async (projectName: string): Promise<void> => {
+    try {
+      const res = await fetchSetCareProjectName({ care_project_name: projectName })
+      currentCareProject.value = projectName || null
+      ElMessage.success(`关注项目设置为${projectName}成功`)
+    } catch (error) {
+      console.error('设置关注项目失败:', error)
+    }
   }
 
   /**
@@ -463,6 +519,10 @@
 
   .chat-button:hover :deep(.art-svg-icon) {
     animation: shake 0.5s ease-in-out;
+  }
+
+  .project-btn:hover :deep(.art-svg-icon) {
+    animation: moveUp 0.4s;
   }
 
   /* Breathing animation for chat dot */

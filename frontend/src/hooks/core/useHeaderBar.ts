@@ -108,6 +108,11 @@ export function useHeaderBar() {
     return isFeatureEnabled('themeToggle')
   })
 
+  // 检查项目选择器是否显示
+  const shouldShowProjectSelector = computed(() => {
+    return isFeatureEnabled('projectSelector')
+  })
+
   // 获取快速入口的最小宽度
   const fastEnterMinWidth = computed(() => {
     const config = getFeatureConfig('fastEnter')
@@ -184,6 +189,7 @@ export function useHeaderBar() {
     shouldShowLanguage, // 是否显示语言切换
     shouldShowSettings, // 是否显示设置面板
     shouldShowThemeToggle, // 是否显示主题切换
+    shouldShowProjectSelector, // 是否显示项目选择器
 
     // 配置相关
     fastEnterMinWidth, // 快速入口最小宽度

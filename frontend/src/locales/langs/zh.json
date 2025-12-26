@@ -30,6 +30,9 @@
       "theme": "主题风格",
       "menu": "开启顶栏菜单",
       "description": "等更多配置"
+    },
+    "project": {
+      "all": "全部项目"
     }
   },
   "common": {
