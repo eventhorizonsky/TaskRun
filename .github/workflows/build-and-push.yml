@@ -38,7 +38,7 @@ jobs:
 
     - name: Build Docker image with tags
       run: |
-        docker build -t ezsky111/taskrun:${{ steps.vars.outputs.tag }} -t ezsky111/taskrunservice:latest .
+        docker build -t ezsky111/taskrun:${{ steps.vars.outputs.tag }} -t ezsky111/taskrun:latest .
 
     - name: Push Docker image with tag
       run: docker push ezsky111/taskrun:${{ steps.vars.outputs.tag }}

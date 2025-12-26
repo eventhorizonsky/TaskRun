@@ -83,7 +83,10 @@
           @command="setCareProject"
           popper-class="projectDropDownStyle"
         >
-          <ArtIconButton icon="ri:folder-line" class="project-btn"></ArtIconButton>
+          <div class="inline-flex items-center c-p text-g-600 dark:text-g-800 text-xl rounded tad-300 hover:bg-hover-color px-2 py-1 project-btn" style="min-height: 2.125rem;">
+            <ArtSvgIcon icon="ri:folder-line" />
+            <span class="ml-1 text-sm">{{ currentCareProject || $t('topBar.project.all') }}</span>
+          </div>
           <template #dropdown>
             <ElDropdownMenu>
               <ElDropdownItem command="">
@@ -330,7 +333,7 @@
     try {
       const res = await fetchSetCareProjectName({ care_project_name: projectName })
       currentCareProject.value = projectName || null
-      ElMessage.success(`关注项目设置为${projectName}成功`)
+      ElMessage.success(`关注项目已设置为【${projectName ? projectName : '全部'}】`)
     } catch (error) {
       console.error('设置关注项目失败:', error)
     }
