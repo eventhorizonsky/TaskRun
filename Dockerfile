@@ -20,6 +20,7 @@ ENV REDIS_PORT=6379
 ENV REDIS_DB=7
 ENV REDIS_DB_FILTER_AND_RPC_RESULT=8
 ENV REDIS_SSL=False
+ENV MONGO_CONNECT_URL=mongodb://127.0.0.1:27017
 
 # 复制后端依赖并安装（CI 已构建前端到 `frontend/dist`）
 COPY backend/requirements.txt /app/requirements.txt
