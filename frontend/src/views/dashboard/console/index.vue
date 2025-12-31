@@ -1,7 +1,7 @@
 <!-- 工作台页面 -->
 <template>
   <div>
-    <CardList></CardList>
+    <!-- <CardList></CardList>
 
     <ElRow :gutter="20">
       <ElCol :sm="24" :md="12" :lg="10">
@@ -10,21 +10,24 @@
       <ElCol :sm="24" :md="12" :lg="14">
         <SalesOverview />
       </ElCol>
-    </ElRow>
+    </ElRow> -->
 
     <ElRow :gutter="20">
-      <ElCol :sm="24" :md="24" :lg="12">
-        <NewUser />
+      <ElCol :sm="24" :md="24" :lg="24">
+        <QueueRunInfo />
       </ElCol>
+    </ElRow>
+
+    <!-- <ElRow :gutter="20">
       <ElCol :sm="24" :md="12" :lg="6">
         <Dynamic />
       </ElCol>
       <ElCol :sm="24" :md="12" :lg="6">
         <TodoList />
       </ElCol>
-    </ElRow>
+    </ElRow> -->
 
-    <AboutProject />
+    <!-- <AboutProject /> -->
   </div>
 </template>
 
@@ -36,6 +39,7 @@
   import Dynamic from './modules/dynamic-stats.vue'
   import TodoList from './modules/todo-list.vue'
   import AboutProject from './modules/about-project.vue'
+  import QueueRunInfo from './modules/queue-run-info.vue'
 
   defineOptions({ name: 'Console' })
 </script>

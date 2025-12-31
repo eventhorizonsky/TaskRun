@@ -20,8 +20,6 @@ class MyBoosterParams(BoosterParams):
 def f(x):  
     time.sleep(5)  
     print(f'hi: {x}')  
-    if random.random() > 0.9:  
-        raise ValueError('f error')  
     return x + 1  
 
 @boost(MyBoosterParams(queue_name='queue_test_g02t',qps=0.5,  
@@ -33,14 +31,7 @@ def f2(x,y):
         raise ValueError('f2 error')  
     return x + y  
 
-@boost(MyBoosterParams(queue_name='queue_test_g03t',qps=0.5,  
-max_retry_times=0,concurrent_mode=ConcurrentModeEnum.ASYNC))  
-async def aio_f3(x):  
-    await asyncio.sleep(3)  
-    print(f'f3aa: {x}')  
-    if random.random() > 0.5:  
-        raise ValueError('f3 error')  
-    return x + 1 
+
 if __name__ == '__main__':      
     f.multi_process_consume(4)  
     f2.multi_process_consume(5)

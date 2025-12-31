@@ -43,3 +43,13 @@ export function fetchGetFunboostResults(params: Api.Funboost.FunboostResultsPara
     params
   })
 }
+
+/**
+ * 获取所有队列的运行信息
+ * @returns 所有队列的运行信息
+ */
+export function fetchGetAllQueueRunInfo() {
+  return request.get<Api.Funboost.AllQueuesRunInfoData>({
+    url: '/api/funboost/get_all_queue_run_info'
+  })
+}

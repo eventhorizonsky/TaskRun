@@ -6,7 +6,7 @@ export const taskManagerRoutes: AppRouteRecord = {
   component: '/index/index',
   meta: {
     title: '任务管理',
-    icon: 'ri:pie-chart-line',
+    icon: 'hugeicons:task-01',
     roles: ['R_SUPER', 'R_ADMIN']
   },
   children: [
@@ -16,6 +16,7 @@ export const taskManagerRoutes: AppRouteRecord = {
       component: '/taskmanager/querytask',
       meta: {
         title: '任务列表',
+        icon: 'ic:round-list-alt',
         keepAlive: true
       }
     }

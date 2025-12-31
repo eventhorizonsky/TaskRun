@@ -40,7 +40,7 @@ class BrokerConnConfig(DataClassBase):
     REDIS_USERNAME = os.getenv('REDIS_USERNAME', '')
     REDIS_PASSWORD = os.getenv('REDIS_PASSWORD', '')
     REDIS_PORT = int(os.getenv('REDIS_PORT', '6379'))
-    REDIS_DB = int(os.getenv('REDIS_DB', '7'))  # redis消息队列所在db，请不要在这个db放太多其他键值对，以及方便你自己可视化查看你的redis db，框架里面有的功能会scan扫描unacked的键名，使用单独的db。
+    REDIS_DB = int(os.getenv('REDIS_DB', '5'))  # redis消息队列所在db，请不要在这个db放太多其他键值对，以及方便你自己可视化查看你的redis db，框架里面有的功能会scan扫描unacked的键名，使用单独的db。
     REDIS_DB_FILTER_AND_RPC_RESULT = int(os.getenv('REDIS_DB_FILTER_AND_RPC_RESULT', '8'))  # 如果函数做任务参数过滤 或者使用rpc获取结果，使用这个db，因为这个db的键值对多，和redis消息队列db分开
     REDIS_SSL = os.getenv('REDIS_SSL', 'False').lower() == 'true' # 是否使用ssl加密,默认是False
     REDIS_URL = f'{"rediss" if REDIS_SSL else "redis"}://{REDIS_USERNAME}:{REDIS_PASSWORD}@{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}'

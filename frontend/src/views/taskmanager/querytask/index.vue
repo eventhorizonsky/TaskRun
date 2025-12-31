@@ -9,107 +9,205 @@
       </ArtTableHeader>
 
       <!-- 表格 -->
-      <ArtTable
-        :loading="loading"
-        :data="data"
-        :columns="columns"
-        :pagination="pagination"
-        @pagination:size-change="handleSizeChange"
-        @pagination:current-change="handleCurrentChange"
-      >
+      <ArtTable :loading="loading" :data="data" :columns="columns" :pagination="pagination"
+        @pagination:size-change="handleSizeChange" @pagination:current-change="handleCurrentChange">
       </ArtTable>
     </ElCard>
+
+    <!-- 详情弹窗 -->
+    <ElDialog v-model="detailDialogVisible" title="任务详情" width="50%" class="rounded-lg shadow-lg">
+      <div v-if="detailData" class="p-4">
+        <div class="flex justify-between gap-4">
+          <div class="w-1/2 bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-2">参数</h3>
+            <pre class="text-sm overflow-auto" v-html="highlightJson(formatJson(detailData.params))"></pre>
+          </div>
+          <div v-if="detailData.success" class="w-1/2 bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-2">结果</h3>
+            <pre class="text-sm overflow-auto" v-html="highlightJson(formatJson(detailData.result))"></pre>
+          </div>
+          <div v-else class="w-1/2 bg-gray-100 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-2">异常信息</h3>
+            <pre class="text-sm">异常类型: {{ detailData.exception_type }}</pre>
+            <pre class="text-sm">异常信息: {{ detailData.exception_msg }}</pre>
+            <pre class="text-sm">完整信息: {{ detailData.exception }}</pre>
+          </div>
+        </div>
+      </div>
+    </ElDialog>
   </div>
 </template>
 
 <script setup lang="ts">
-  import { useTable } from '@/hooks/core/useTable'
-  import { fetchGetFunboostResults } from '@/api/funboost'
-  import QueryTaskSearch from './modules/querytask-search.vue'
-  import { ElTag } from 'element-plus'
+import { useTable } from '@/hooks/core/useTable'
+import { fetchGetFunboostResults } from '@/api/funboost'
+import QueryTaskSearch from './modules/querytask-search.vue'
+import { ElTag, ElDialog, ElButton } from 'element-plus'
+import { ref, h, watch } from 'vue'
+import { useRoute } from 'vue-router'
+import hljs from 'highlight.js'
+import 'highlight.js/styles/github.css'
 
-  defineOptions({ name: 'QueryTask' })
+const route = useRoute()
 
-  type FunboostResultItem = Api.Funboost.FunboostResultItem
-  type FunboostResultsData = Api.Funboost.FunboostResultsData
+defineOptions({ name: 'QueryTask' })
 
-  // 搜索表单
-  const searchForm = ref({
-    task_id: undefined,
-    queue_name: undefined,
-    success: undefined
-  })
-
-  // 成功状态配置
-  const SUCCESS_STATUS_CONFIG = {
-    true: { type: 'success' as const, text: '成功' },
-    false: { type: 'danger' as const, text: '失败' }
-  } as const
-
-  /**
-   * 获取成功状态配置
-   */
-  const getSuccessStatusConfig = (success: boolean) => {
-    return SUCCESS_STATUS_CONFIG[success as unknown as keyof typeof SUCCESS_STATUS_CONFIG] || { type: 'info' as const, text: '未知' }
+// 监听路由查询参数变化，自动执行查询
+watch(() => route.query, (newQuery) => {
+  if (newQuery.queue_name) {
+    searchForm.value.queue_name = newQuery.queue_name as string
+    handleSearch(searchForm.value)
   }
+}, { immediate: true })
 
-  const {
-    columns,
-    columnChecks,
-    data,
-    loading,
-    pagination,
-    getData,
-    searchParams,
-    resetSearchParams,
-    handleSizeChange,
-    handleCurrentChange,
-    refreshData
-  } = useTable({
-    // 核心配置
-    core: {
-      apiFn: fetchGetFunboostResults,
-      apiParams: {
-        page: 1,
-        size: 20,
-        ...searchForm.value
-      },
-      // 自定义分页字段映射
-      paginationKey: {
-        current: 'page',
-        size: 'size'
-      },
-      columnsFactory: () => [
-        { type: 'index', width: 60, label: '序号' },
-        { prop: 'task_id', label: '任务ID', width: 200 },
-        { prop: 'function', label: '函数名' },
-        { prop: 'queue_name', label: '队列名称' },
-        { prop: 'host_name', label: '主机名' },
-        { prop: 'success', label: '状态', formatter: (row) => {
+type FunboostResultItem = Api.Funboost.FunboostResultItem
+
+// 搜索表单
+const searchForm = ref({
+  task_id: undefined,
+  queue_name: undefined,
+  success: undefined
+})
+
+// 成功状态配置
+const SUCCESS_STATUS_CONFIG = {
+  true: { type: 'success' as const, text: '成功' },
+  false: { type: 'danger' as const, text: '失败' }
+} as const
+
+/**
+ * 获取成功状态配置
+ */
+const getSuccessStatusConfig = (success: boolean) => {
+  return SUCCESS_STATUS_CONFIG[success as unknown as keyof typeof SUCCESS_STATUS_CONFIG] || { type: 'info' as const, text: '未知' }
+}
+
+const {
+  columns,
+  columnChecks,
+  data,
+  loading,
+  pagination,
+  getData,
+  searchParams,
+  resetSearchParams,
+  handleSizeChange,
+  handleCurrentChange,
+  refreshData
+} = useTable({
+  // 核心配置
+  core: {
+    apiFn: fetchGetFunboostResults,
+    apiParams: {
+      page: 1,
+      size: 20,
+      ...searchForm.value
+    },
+    // 自定义分页字段映射
+    paginationKey: {
+      current: 'page',
+      size: 'size'
+    },
+    columnsFactory: () => [
+      { type: 'index', width: 60, label: '序号' },
+      { prop: 'function', label: '函数名' },
+      { prop: 'queue_name', label: '队列名称' },
+      { prop: 'host_name', label: '主机名' },
+      { prop: 'params_str', label: '参数' },
+      { prop: 'time_cost', label: '耗时(s)', formatter: (row: FunboostResultItem) => row.time_cost?.toFixed(2) },
+      { prop: 'run_times', label: '运行次数', width: 80 },
+      {
+        prop: 'success', label: '状态', width: 80, formatter: (row: FunboostResultItem) => {
           const statusConfig = getSuccessStatusConfig(row.success)
           return h(ElTag, { type: statusConfig.type }, () => statusConfig.text)
-        }},
-        { prop: 'time_cost', label: '耗时(s)', formatter: (row) => row.time_cost?.toFixed(2) },
-        { prop: 'run_times', label: '运行次数' },
-        { prop: 'insert_time', label: '插入时间', width: 160 },
-        { prop: 'exception', label: '异常信息', width: 200, formatter: (row) => row.exception?.substring(0, 50) + '...' }
-      ]
-    },
-    // 数据处理
-    transform: {
-      dataTransformer: (response: FunboostResultItem) => {
-        // 后端返回的是 {data: [...], total: ..., page: ..., size: ..., total_pages: ...}
-        return response || []
+        }
       },
-      totalTransformer: (response: FunboostResultsData) => response.total || 0
+      { prop: 'insert_time', label: '插入时间', width: 180, formatter: (row: FunboostResultItem) => formatDateTime(row.insert_time) },
+      {
+        label: '操作', width: 120, fixed: 'right', formatter: (row: FunboostResultItem) => {
+          return h(ElButton, {
+            onClick: () => showDetail(row)
+          }, '详情')
+        }
+      }
+    ]
+  },
+  // 数据处理
+  transform: {
+    dataTransformer: (response) => {
+      // 后端返回的是 {data: [...], total: ..., page: ..., size: ..., total_pages: ...}
+      return response || []
     }
-  })
-
-  /**
-   * 搜索处理
-   */
-  const handleSearch = (params: Record<string, any>) => {
-    Object.assign(searchParams, params)
-    getData()
   }
+})
+
+// 详情弹窗相关
+const detailDialogVisible = ref(false)
+const detailData = ref<FunboostResultItem | null>(null)
+
+const showDetail = (row: FunboostResultItem) => {
+  detailData.value = row
+  detailDialogVisible.value = true
+}
+
+/**
+ * 格式化 JSON 数据
+ */
+const formatJson = (data: any) => {
+  try {
+    const decompressed = JSON.parse(data) // 假设 data 是压缩后的 JSON 字符串
+    return JSON.stringify(decompressed, null, 2)
+  } catch {
+    return data
+  }
+}
+
+/**
+ * 高亮 JSON 数据
+ */
+const highlightJson = (json: string) => {
+  return hljs.highlight(json, { language: 'json' }).value
+}
+
+/**
+ * 搜索处理
+ */
+const handleSearch = (params: Record<string, any>) => {
+  Object.assign(searchParams, params)
+  getData()
+}
+
+/**
+ * 格式化日期时间
+ */
+const formatDateTime = (dateTime: string) => {
+  try {
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    };
+    return new Date(dateTime).toLocaleString('zh-CN', options);
+  } catch {
+    return dateTime;
+  }
+};
 </script>
+
+<style scoped>
+.querytask-page {
+  padding: 20px;
+}
+
+.art-table-card {
+  margin-top: 20px;
+}
+
+.el-dialog__body {
+  padding: 20px;
+}
+</style>

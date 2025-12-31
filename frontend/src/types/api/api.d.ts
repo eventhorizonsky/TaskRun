@@ -158,7 +158,7 @@ declare namespace Api {
       host_name?: string
       host_process?: string
       insert_minutes?: string
-      insert_time?: string
+      insert_time: string
       insert_time_str?: string
       publish_time?: number
       publish_time_format?: string
@@ -171,7 +171,7 @@ declare namespace Api {
       run_times?: number
       script_name?: string
       script_name_long?: string
-      success?: boolean
+      success: boolean
       task_id?: string
       thread_id?: number
       time_cost?: number
@@ -203,6 +203,71 @@ declare namespace Api {
       task_id?: string
       queue_name?: string
       success?: boolean
+    }
+
+    /** 活跃消费者运行信息 */
+    interface ActiveConsumerRunInfo {
+      queue_name: string
+      computer_name: string
+      computer_ip: string
+      process_id: number
+      consumer_id: number
+      consumer_uuid: string
+      start_datetime_str: string
+      start_timestamp: number
+      hearbeat_datetime_str: string
+      hearbeat_timestamp: number
+      consuming_function: string
+      code_filename: string
+      unit_time_for_count: number
+      last_x_s_execute_count: number
+      last_x_s_execute_count_fail: number
+      last_execute_task_time: number
+      last_x_s_avarage_function_spend_time: number | null
+      last_x_s_total_cost_time: number | null
+      msg_num_in_broker: number
+      current_time_for_execute_task_times_every_unit_time: number
+      last_timestamp_when_has_task_in_queue: number
+      total_consume_count_from_start: number
+      total_consume_count_from_start_fail: number
+      total_cost_time_from_start: number
+      avarage_function_spend_time_from_start: number | null
+    }
+
+    /** 队列参数 */
+    interface QueueParams {
+      queue_name: string
+      broker_kind: string
+      project_name: string | null
+      concurrent_mode: string
+      concurrent_num: number
+      qps: number | null
+      is_using_rpc_mode: boolean
+      consuming_function_name: string
+      [key: string]: any
+    }
+
+    /** 队列参数和活跃消费者数据 */
+    interface QueueParamsAndActiveConsumersData {
+      queue_params: QueueParams
+      active_consumers: ActiveConsumerRunInfo[]
+      pause_flag: number
+      msg_num_in_broker: number
+      history_run_count: number | null
+      history_run_fail_count: number | null
+      all_consumers_last_x_s_execute_count: number
+      all_consumers_last_x_s_execute_count_fail: number
+      all_consumers_last_x_s_avarage_function_spend_time: number | null
+      all_consumers_avarage_function_spend_time_from_start: number | null
+      all_consumers_total_consume_count_from_start: number
+      all_consumers_total_consume_count_from_start_fail: number
+      all_consumers_last_execute_task_time: number | null
+    }
+
+    /** 所有队列运行信息数据 */
+    interface AllQueuesRunInfoData {
+      queues: Record<string, QueueParamsAndActiveConsumersData>
+      total_count: number
     }
   }
 }
