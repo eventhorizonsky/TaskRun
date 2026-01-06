@@ -53,3 +53,25 @@ export function fetchGetAllQueueRunInfo() {
     url: '/api/funboost/get_all_queue_run_info'
   })
 }
+
+/**
+ * 获取所有队列的配置信息
+ * @returns 所有队列的配置信息
+ */
+export function fetchGetQueuesConfig() {
+  return request.get<Api.Funboost.QueueConfigData>({
+    url: '/api/funboost/get_queues_config'
+  })
+}
+
+/**
+ * 发布消息
+ * @param params 发布参数
+ * @returns 发布结果
+ */
+export function fetchPublishMsg(params: Api.Funboost.PublishMsgParams) {
+  return request.post<Api.Funboost.RpcRespData>({
+    url: '/api/funboost/publish',
+    params
+  })
+}

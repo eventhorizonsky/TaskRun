@@ -4,13 +4,13 @@
     <!-- 1. 全局统计看板：聚合所有队列的数据 -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
     <ElCard  class="art-table-card" shadow="never">
-        <div class="stats-label text-gray-500">总队列数 / 活跃项目</div>
+        <div class="stats-label text-gray-500">总队列数</div>
         <div class="stats-value text-2xl font-bold">
-          {{ Object.keys(allQueuesData).length }} / {{ uniqueProjects.length }}
+          {{ Object.keys(allQueuesData).length }}
         </div>
       </ElCard>
     <ElCard  class="art-table-card" shadow="never">
-        <div class="stats-label text-gray-500">全网待处理任务 (消息积压)</div>
+        <div class="stats-label text-gray-500">待处理任务 (消息积压)</div>
         <div class="stats-value text-2xl font-bold text-orange-600">{{ globalStats.totalBacklog }}</div>
       </ElCard>
     <ElCard class="art-table-card" shadow="never">
@@ -18,7 +18,7 @@
         <div class="stats-value text-2xl font-bold text-green-600">{{ globalStats.totalConsumers }}</div>
       </ElCard>
     <ElCard class="art-table-card" shadow="never">
-      <div class="stats-label text-gray-500">全网实时吞吐 (近10s)</div>
+      <div class="stats-label text-gray-500">实时吞吐 (近10s)</div>
         <div class="stats-value text-2xl font-bold text-purple-600">
           {{ globalStats.totalThroughput }} <span class="text-sm font-normal">tasks/10s</span>
         </div>

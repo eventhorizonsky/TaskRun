@@ -11,8 +11,8 @@ import { taskManagerRoutes } from './taskmanager'
 export const routeModules: AppRouteRecord[] = [
   dashboardRoutes,
   taskManagerRoutes,
-  systemRoutes,
-  resultRoutes,
-  exceptionRoutes
+  // systemRoutes,
+  // resultRoutes,
+  // exceptionRoutes
 
 ]

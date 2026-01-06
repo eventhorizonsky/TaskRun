@@ -39,6 +39,7 @@ CREATE TABLE `funboost_consume_results` (
   `exception_msg` text COLLATE utf8mb4_unicode_ci,
   `rpc_chain_error_msg_dict` text COLLATE utf8mb4_unicode_ci,
   `run_status` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `user_context` text COLLATE utf8mb4_unicode_ci,
   PRIMARY KEY (`_id`),
   KEY `idx_insert_time` (`insert_time`),
   KEY `idx_queue_name_insert_time` (`queue_name`,`insert_time`),

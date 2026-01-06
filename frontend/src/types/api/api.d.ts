@@ -269,5 +269,25 @@ declare namespace Api {
       queues: Record<string, QueueParamsAndActiveConsumersData>
       total_count: number
     }
+
+    /** 队列配置数据 */
+    interface QueueConfigData {
+      queues_config: Record<string, QueueParams>
+      count: number
+    }
+
+    /** 发布消息参数 */
+    interface PublishMsgParams {
+      queue_name: string
+      msg_body: Record<string, any>
+      need_result?: boolean
+      timeout?: number
+    }
+
+    /** RPC响应数据 */
+    interface RpcRespData {
+      task_id: string | null
+      status_and_result: any | null
+    }
   }
 }

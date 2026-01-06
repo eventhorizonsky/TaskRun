@@ -4,6 +4,16 @@
     <QueryTaskSearch v-model="searchForm" @search="handleSearch" @reset="resetSearchParams" />
 
     <ElCard class="art-table-card" shadow="never">
+      <template #header>
+        <div class="flex justify-between items-center">
+          <span class="text-lg font-medium">任务查询</span>
+          <ElButton type="primary" @click="showPublishDialog">
+            <ElIcon><Plus /></ElIcon>
+            创建任务
+          </ElButton>
+        </div>
+      </template>
+
       <!-- 表格头部 -->
       <ArtTableHeader v-if="!isMobile" v-model:columns="columnChecks" :loading="loading" @refresh="refreshData">
       </ArtTableHeader>
@@ -67,6 +77,13 @@
         </div>
       </div>
     </ElDialog>
+
+    <!-- 发布任务弹窗 -->
+    <PublishTaskDialog
+      v-model="publishDialogVisible"
+      @published="handleTaskPublished"
+      @view-result="handleViewResult"
+    />
   </div>
 </template>
 
@@ -74,9 +91,11 @@
 import { useTable } from '@/hooks/core/useTable'
 import { fetchGetFunboostResults } from '@/api/funboost'
 import QueryTaskSearch from './modules/querytask-search.vue'
-import { ElTag, ElDialog, ElButton, ElPagination } from 'element-plus'
+import PublishTaskDialog from './modules/create-task.vue'
+import { ElTag, ElDialog, ElButton, ElPagination, ElIcon } from 'element-plus'
 import { ref, h, watch, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { Plus } from '@element-plus/icons-vue'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/github.css'
 
@@ -111,6 +130,9 @@ const searchForm = ref({
   queue_name: '',
   success: undefined
 })
+
+// 发布任务弹窗
+const publishDialogVisible = ref(false)
 
 // 成功状态配置
 const SUCCESS_STATUS_CONFIG = {
@@ -191,6 +213,22 @@ const detailData = ref<FunboostResultItem | null>(null)
 const showDetail = (row: FunboostResultItem) => {
   detailData.value = row
   detailDialogVisible.value = true
+}
+
+// 发布任务相关方法
+const showPublishDialog = () => {
+  publishDialogVisible.value = true
+}
+
+const handleTaskPublished = () => {
+  // 任务发布成功后刷新列表
+  refreshData()
+}
+
+const handleViewResult = (taskId: string) => {
+  // 设置任务ID到搜索表单并查询
+  searchForm.value.task_id = taskId
+  handleSearch(searchForm.value)
 }
 
 /**

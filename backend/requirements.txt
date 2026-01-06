@@ -5,7 +5,7 @@ nb_log==14.0
 pydantic==2.12.5
 python_json_logger==0.1.10
 uvicorn==0.40.0
-funboost==52.6
+funboost==53.6
 sqlalchemy==2.0.23
 pymysql==1.1.0
 mysqlclient==2.1.1
