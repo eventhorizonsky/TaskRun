@@ -25,7 +25,7 @@ def f(x):
 
 @boost(MyBoosterParams(queue_name='queue_test_g02t',qps=0.5,  
 max_retry_times=0,))  
-def f2(x,y):  
+def f2(x,y:int=10):  
     time.sleep(2)  
     print(f'hello: {x} {y}')  
     if random.random() > 0.5:  

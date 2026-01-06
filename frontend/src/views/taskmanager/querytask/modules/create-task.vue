@@ -44,7 +44,7 @@
               <ul class="list-disc list-inside">
                 <li v-for="param in inputParams" :key="param.name">
                   <span :class="param.required ? 'text-red-500' : 'text-gray-600'">
-                    {{ param.name }} ({{ param.type }})
+                    {{ param.name }}
                     <span v-if="param.required" class="text-red-500">*</span>
                   </span>
                 </li>
