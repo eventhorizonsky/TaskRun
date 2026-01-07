@@ -23,3 +23,43 @@ export function fetchGetMenuList() {
     url: '/api/v3/system/menus/simple'
   })
 }
+
+/**
+ * 启动子进程
+ * @returns 启动结果
+ */
+export function fetchStartProcess() {
+  return request.post<Api.Common.CommonResponse>({
+    url: '/api/process/start'
+  })
+}
+
+/**
+ * 重启子进程
+ * @returns 重启结果
+ */
+export function fetchRestartProcess() {
+  return request.post({
+    url: '/api/process/restart'
+  })
+}
+
+/**
+ * 停止子进程
+ * @returns 停止结果
+ */
+export function fetchStopProcess() {
+  return request.post({
+    url: '/api/process/stop'
+  })
+}
+
+/**
+ * 获取子进程状态
+ * @returns 子进程状态
+ */
+export function fetchGetProcessStatus() {
+  return request.get<Api.SystemManage.ProcessStatusData>({
+    url: '/api/process/status'
+  })
+}

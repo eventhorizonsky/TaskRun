@@ -48,6 +48,14 @@ declare namespace Api {
     /** 通用搜索参数 */
     type CommonSearchParams = Pick<PaginationParams, 'current' | 'size'>
 
+    /** 通用响应 */
+    interface CommonResponse {
+      succ: boolean
+      msg: string
+      data?: any
+      code: number
+    }
+
     /** 分页响应基础结构 */
     interface PaginatedResponse<T = any> {
       data: T[]
@@ -131,6 +139,12 @@ declare namespace Api {
       Pick<RoleListItem, 'roleId' | 'roleName' | 'roleCode' | 'description' | 'enabled'> &
         Api.Common.CommonSearchParams
     >
+
+    /** 子进程状态数据 */
+    interface ProcessStatusData {
+      status: 'running' | 'stopped'
+      pid?: number
+    }
   }
 
   /** Funboost类型 */

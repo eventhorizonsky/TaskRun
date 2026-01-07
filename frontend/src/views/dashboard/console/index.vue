@@ -1,6 +1,6 @@
 <!-- 工作台页面 -->
 <template>
-  <div>
+  <div class="console-page art-full-height">
     <!-- <CardList></CardList>
 
     <ElRow :gutter="20">
