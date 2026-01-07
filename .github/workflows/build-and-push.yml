@@ -45,13 +45,13 @@ jobs:
 
     - name: Build Docker image with tags
       run: |
-        docker build -t eventhorizonsky/taskrun:${{ steps.vars.outputs.tag }} -t eventhorizonsky/taskrun:latest .
+        docker build -t ezsky333/taskrun:${{ steps.vars.outputs.tag }} -t ezsky333/taskrun:latest . -t eventhorizonsky/taskrun:${{ steps.vars.outputs.tag }} -t eventhorizonsky/taskrun:latest .
 
     - name: Push Docker image with tag
-      run: docker push eventhorizonsky/taskrun:${{ steps.vars.outputs.tag }}
+      run: docker push ezsky333/taskrun:${{ steps.vars.outputs.tag }}
 
     - name: Push Docker image with latest tag
-      run: docker push eventhorizonsky/taskrun:latest
+      run: docker push ezsky333/taskrun:latest
 
     - name: Push Docker image to GitHub Container Registry with tag
       run: docker push ghcr.io/eventhorizonsky/taskrun:${{ steps.vars.outputs.tag }}
