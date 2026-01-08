@@ -120,7 +120,8 @@ export default ({ mode }: { mode: string }) => {
         'vue-img-cutter',
         'element-plus/es',
         'element-plus/es/components/*/style/css',
-        'element-plus/es/components/*/style/index'
+        'element-plus/es/components/*/style/index',
+        'monaco-editor/esm/vs/editor/editor.worker'
       ]
     },
     css: {

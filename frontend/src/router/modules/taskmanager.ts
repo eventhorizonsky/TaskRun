@@ -19,6 +19,15 @@ export const taskManagerRoutes: AppRouteRecord = {
         icon: 'ic:round-list-alt',
         keepAlive: true
       }
+    },    {
+      path: 'taskeditor',
+      name: 'TaskEditor',
+      component: '/taskmanager/taskeditor',
+      meta: {
+        title: '任务编辑',
+        icon: 'ic:round-edit',
+        keepAlive: true
+      }
     }
     
   ]

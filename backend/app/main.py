@@ -8,6 +8,7 @@ from fastapi.responses import FileResponse
 from app.routers.auth import router as auth_router
 from app.routers.funboost import router as funboost_router
 from app.routers.system import router as system_router
+from app.routers.files import router as files_router
 
 app = FastAPI()
 
@@ -15,6 +16,7 @@ app = FastAPI()
 app.include_router(auth_router, prefix="/api")
 app.include_router(funboost_router, prefix="/api")
 app.include_router(system_router, prefix="/api")
+app.include_router(files_router, prefix="/api")
 
 # Mount static files for frontend
 frontend_path = "/frontend/dist"
