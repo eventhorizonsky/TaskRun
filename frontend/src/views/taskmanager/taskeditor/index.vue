@@ -5,31 +5,33 @@
   ]">
     <!-- 头部工具栏 -->
     <div :class="[
-      'px-3 py-2 flex flex-col gap-2 flex-shrink-0 border-b',
+      'px-3 py-2 flex flex-col md:flex-row items-center justify-between gap-2 flex-shrink-0 border-b',
       isDark ? 'bg-[#252526] border-[#3e3e3e]' : 'bg-gray-50 border-gray-200'
     ]">
-      <div class="flex items-center gap-2 flex-wrap">
-        <el-button type="primary" size="small" @click="loadFilesList">
-          <Refresh class="w-4 h-4" />
-          刷新
-        </el-button>
-        <el-button size="small" @click="showCreateDialog">新建</el-button>
-        <el-button size="small" @click="saveCurrentFile" :disabled="!currentFile">保存</el-button>
-        <el-button size="small" @click="refreshCurrentFile" :disabled="!currentFile">重新加载</el-button>
+      <div class="flex flex-col md:flex-row items-start md:items-center gap-2 md:gap-2">
+        <div class="flex flex-wrap md:flex-nowrap gap-1 md:gap-2">
+          <el-button type="primary" size="small" @click="loadFilesList">
+            <Refresh class="w-4 h-4" />
+            刷新
+          </el-button>
+          <el-button size="small" @click="showCreateDialog">新建</el-button>
+          <el-button size="small" @click="saveCurrentFile" :disabled="!currentFile">保存</el-button>
+          <el-button size="small" @click="refreshCurrentFile" :disabled="!currentFile">重载</el-button>
+        </div>
         <el-input
           v-model="searchInput"
           placeholder="搜索..."
           size="small"
-          style="width: 160px"
+          class="w-full md:w-40"
           clearable
           @input="handleSearch"
         />
       </div>
 
       <!-- 进程管理控件 -->
-      <div class="flex items-center gap-2 flex-shrink-0">
+      <div class="flex-shrink-0">
         <div :class="[
-          'flex items-center gap-3 px-3 py-1 rounded transition-all',
+          'flex flex-col md:flex-row items-center gap-2 md:gap-3 px-3 py-1 rounded transition-all',
           isDark ? 'bg-[#1e1e1e] border border-[#3e3e3e]' : 'bg-white border border-gray-200'
         ]">
           <!-- 进程状态指示器 -->
@@ -43,7 +45,7 @@
             </span>
           </div>
 
-          <div :class="['w-px h-4', isDark ? 'bg-[#3e3e3e]' : 'bg-gray-200']" />
+          <div :class="['w-full md:w-px h-px md:h-4', isDark ? 'bg-[#3e3e3e]' : 'bg-gray-200']" />
 
           <!-- 进程操作按钮 -->
           <el-button-group size="small">
@@ -73,10 +75,10 @@
       </div>
     </div>
 
-    <div class="flex flex-row flex-1 overflow-hidden w-full">
+    <div class="flex flex-col md:flex-row flex-1 overflow-hidden w-full">
       <!-- 左侧文件树 -->
       <div :class="[
-        'w-64 flex flex-col flex-shrink-0 overflow-hidden border-r',
+        'w-full md:w-64 flex flex-col flex-shrink-0 overflow-hidden border-b md:border-b-0 md:border-r',
         isDark ? 'bg-[#252526] border-[#3e3e3e]' : 'bg-gray-50 border-gray-200'
       ]">
         <div :class="[
@@ -156,6 +158,8 @@
             id="monaco-editor"
             ref="editorContainer"
             class="flex-1 w-full overflow-hidden"
+            v-loading="fileLoading"
+            element-loading-text="加载文件中..."
           />
         </div>
       </div>
@@ -216,6 +220,9 @@ const isContentModified = ref(false)
 const searchInput = ref<string>('')
 const treeRef = ref()
 let ignoreNextChange = false // 用于忽略setValue导致的修改事件
+
+// 文件加载loading状态
+const fileLoading = ref(false)
 
 // 进程管理数据
 const processStatus = ref<Api.SystemManage.ProcessStatusData>({
@@ -296,7 +303,12 @@ const loadChildNodes = async (node: any, resolve: Function) => {
 // 处理节点点击
 const handleNodeClick = async (node: any) => {
   if (node.type === 'file') {
-    await loadFile(node)
+    fileLoading.value = true
+    try {
+      await loadFile(node)
+    } finally {
+      fileLoading.value = false
+    }
   }
 }
 
