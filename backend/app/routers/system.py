@@ -8,6 +8,16 @@ router = APIRouter()
 
 process_store = {}
 
+def install_requirements_if_exists(tasks_dir):
+    req_file = os.path.join(tasks_dir, 'requirements.txt')
+    if os.path.exists(req_file):
+        try:
+            subprocess.run(['pip', 'install', '-r', 'requirements.txt'], cwd=tasks_dir, check=True)
+            return True
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"安装依赖失败: {str(e)}")
+    return False
+
 @router.get('/system/health')
 async def health_check():
     """健康检查接口"""
@@ -21,7 +31,9 @@ async def start_process():
     if 'taskrunner' in process_store and process_store['taskrunner'].poll() is None:
         return error_response(msg="进程已在运行")
     
+    tasks_dir = os.getenv('TASKS_DIR', '/workspaces/TaskRun/examleTask')
     try:
+        install_requirements_if_exists(tasks_dir)
         process_store['taskrunner'] = subprocess.Popen(['python', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..')
         return success_response(msg="进程启动成功")
     except Exception as e:
@@ -39,6 +51,10 @@ async def restart_process():
         # 清理存储的进程引用
         if 'taskrunner' in process_store:
             del process_store['taskrunner']
+        
+        # 检查并安装依赖
+        tasks_dir = os.getenv('TASKS_DIR', '/workspaces/TaskRun/examleTask')
+        install_requirements_if_exists(tasks_dir)
         
         # 再启动
         process_store['taskrunner'] = subprocess.Popen(['python', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..')
