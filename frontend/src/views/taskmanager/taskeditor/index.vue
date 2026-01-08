@@ -59,6 +59,12 @@
             </el-button>
             <el-button
               size="small"
+              @click="handleInstallDependencies"
+            >
+              安装依赖
+            </el-button>
+            <el-button
+              size="small"
               :loading="processLoading.restart"
               @click="handleRestartProcess"
             >
@@ -67,7 +73,7 @@
             <el-button
               size="small"
               type="info"
-              @click="logDialogVisible = true"
+              @click="handleViewLogs"
             >
               日志
             </el-button>
@@ -192,7 +198,7 @@
     </el-dialog>
 
     <!-- 日志弹窗 -->
-    <LogDialog v-model="logDialogVisible" />
+    <LogDialog v-model="logDialogVisible" :logType="logType" />
   </ElCard>
 </template>
 
@@ -208,7 +214,7 @@ import {
   fetchCreateFile,
   fetchDeleteFile
 } from '@/api/files'
-import { fetchStartProcess, fetchRestartProcess, fetchStopProcess, fetchGetProcessStatus } from '@/api/system-manage'
+import { fetchStartProcess, fetchRestartProcess, fetchStopProcess, fetchGetProcessStatus, fetchInstallDependencies } from '@/api/system-manage'
 import LogDialog from '@/components/LogDialog.vue'
 
 const RefreshIcon = Refresh
@@ -255,6 +261,7 @@ const createForm = reactive({
 
 // 日志弹窗
 const logDialogVisible = ref(false)
+const logType = ref<'process' | 'install'>('process')
 
 // 计算过滤后的文件列表
 const filterFilesList = computed(() => {
@@ -520,6 +527,7 @@ const handleStartProcess = async () => {
   try {
     await fetchStartProcess()
     ElMessage.success('进程启动中')
+    logType.value = 'process'
     logDialogVisible.value = true
     await refreshProcessStatus()
   } catch (err) {
@@ -558,6 +566,7 @@ const handleRestartProcess = async () => {
   try {
     await fetchRestartProcess()
     ElMessage.success('进程重启中')
+    logType.value = 'process'
     logDialogVisible.value = true
     await refreshProcessStatus()
   } catch (err) {
@@ -565,6 +574,24 @@ const handleRestartProcess = async () => {
   } finally {
     processLoading.value.restart = false
   }
+}
+
+// 安装依赖
+const handleInstallDependencies = async () => {
+  try {
+    await fetchInstallDependencies()
+    ElMessage.success('依赖安装已开始')
+    logType.value = 'install'
+    logDialogVisible.value = true
+  } catch (err) {
+    ElMessage.error('安装失败')
+  }
+}
+
+// 查看日志
+const handleViewLogs = () => {
+  logType.value = 'process'
+  logDialogVisible.value = true
 }
 
 // 挂载编辑器

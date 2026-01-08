@@ -1,6 +1,6 @@
 <template>
-  <el-dialog v-model="visible" title="进程日志" width="800px" @close="handleClose">
-    <div class="log-header">
+  <el-dialog v-model="visible" :title="logType === 'process' ? '进程日志' : '安装日志'" width="800px" @close="handleClose">
+    <div class="log-header" v-if="logType === 'process'">
       <div class="status-info">
         <span>进程状态: </span>
         <el-tag :type="processStatus.status === 'running' ? 'success' : 'danger'">
@@ -21,18 +21,21 @@
 
 <script setup lang="ts">
 import { ref, nextTick, watch } from 'vue'
-import { fetchLogs, fetchGetProcessStatus } from '@/api/system-manage'
+import { fetchLogs, fetchGetProcessStatus, fetchInstallLogs } from '@/api/system-manage'
 import type { Api } from '@/types/api'
 
 interface Props {
   modelValue: boolean
+  logType?: 'process' | 'install'
 }
 
 interface Emits {
   (e: 'update:modelValue', value: boolean): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  logType: 'process'
+})
 const emit = defineEmits<Emits>()
 
 const visible = ref(false)
@@ -59,13 +62,18 @@ watch(visible, (newVal) => {
 // 刷新日志和进程状态
 const refreshLogs = async () => {
   try {
-    const [logRes, statusRes] = await Promise.all([
-      fetchLogs(),
-      fetchGetProcessStatus()
-    ])
-    // 只显示最新的100行以优化性能
-    logs.value = logRes.logs.slice(-100)
-    processStatus.value = statusRes
+    if (props.logType === 'process') {
+      const [logRes, statusRes] = await Promise.all([
+        fetchLogs(),
+        fetchGetProcessStatus()
+      ])
+      // 只显示最新的100行以优化性能
+      logs.value = logRes.logs.slice(-100)
+      processStatus.value = statusRes
+    } else {
+      const logRes = await fetchInstallLogs()
+      logs.value = logRes.logs.slice(-100)
+    }
     // 自动滚动到底部
     await nextTick()
     if (logContainerRef.value) {

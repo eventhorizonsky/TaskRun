@@ -26,6 +26,12 @@
 
     <ElSpace wrap class="p-5">
       <ElButton
+        type="success"
+        @click="handleInstallDependencies"
+      >
+        安装依赖
+      </ElButton>
+      <ElButton
         type="primary"
         :loading="processLoading.start"
         :disabled="processStatus.status === 'running'"
@@ -50,21 +56,21 @@
       </ElButton>
       <ElButton
         type="info"
-        @click="logDialogVisible = true"
+        @click="handleViewLogs"
       >
         查看日志
       </ElButton>
     </ElSpace>
 
     <!-- 日志弹窗 -->
-    <LogDialog v-model="logDialogVisible" />
+    <LogDialog v-model="logDialogVisible" :logType="logType" />
   </ElCard>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
-import { fetchStartProcess, fetchRestartProcess, fetchStopProcess, fetchGetProcessStatus } from '@/api/system-manage'
+import { fetchStartProcess, fetchRestartProcess, fetchStopProcess, fetchGetProcessStatus, fetchInstallDependencies } from '@/api/system-manage'
 import { ElMessage, ElCard, ElButton, ElSpace } from 'element-plus'
 import LogDialog from '@/components/LogDialog.vue'
 
@@ -81,6 +87,7 @@ const processLoading = ref({
 
 // 日志弹窗
 const logDialogVisible = ref(false)
+const logType = ref<'process' | 'install'>('process')
 
 // 刷新进程状态
 const refreshProcessStatus = async () => {
@@ -101,6 +108,7 @@ const handleStartProcess = async () => {
   try {
     await fetchStartProcess()
     ElMessage.success('进程启动中')
+    logType.value = 'process'
     logDialogVisible.value = true
     await refreshProcessStatus()
   } catch (err) {
@@ -116,6 +124,7 @@ const handleRestartProcess = async () => {
   try {
     await fetchRestartProcess()
     ElMessage.success('进程重启中')
+    logType.value = 'process'
     logDialogVisible.value = true
     await refreshProcessStatus()
   } catch (err) {
@@ -125,18 +134,22 @@ const handleRestartProcess = async () => {
   }
 }
 
-// 停止进程
-const handleStopProcess = async () => {
-  processLoading.value.stop = true
+// 安装依赖
+const handleInstallDependencies = async () => {
   try {
-    await fetchStopProcess()
-    ElMessage.success('进程停止成功')
-    await refreshProcessStatus()
+    await fetchInstallDependencies()
+    ElMessage.success('依赖安装已开始')
+    logType.value = 'install'
+    logDialogVisible.value = true
   } catch (err) {
-    ElMessage.error('停止失败')
-  } finally {
-    processLoading.value.stop = false
+    ElMessage.error('安装失败')
   }
+}
+
+// 查看日志
+const handleViewLogs = () => {
+  logType.value = 'process'
+  logDialogVisible.value = true
 }
 
 onMounted(() => {

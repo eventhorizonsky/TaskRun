@@ -1,96 +1,99 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends
 from app.dependencies import success_response, error_response
 from app.dependencies.auth import verify_token
 import subprocess
 import os
-import asyncio
-from collections import deque
+import threading
 
 router = APIRouter()
 
 process_store = {}
-logs = deque(maxlen=500)
+logs_store = {'process': [], 'install': []}
 
-async def install_requirements_if_exists(tasks_dir, logs):
+def add_log(log_type, line):
+    logs = logs_store[log_type]
+    logs.append(line)
+    if len(logs) > 500:
+        logs.pop(0)
+
+def read_output(pipe, log_type):
+    for line in iter(pipe.readline, ''):
+        add_log(log_type, line.strip())
+
+def install_requirements_if_exists(tasks_dir):
     req_file = os.path.join(tasks_dir, 'requirements.txt')
     if os.path.exists(req_file):
         try:
-            process = await asyncio.create_subprocess_exec(
-                'pip', 'install', '-r', 'requirements.txt',
-                cwd=tasks_dir,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE
-            )
-            stdout, stderr = await process.communicate()
-            if stdout:
-                logs.append(f"Install stdout: {stdout.decode().strip()}")
-            if stderr:
-                logs.append(f"Install stderr: {stderr.decode().strip()}")
-            if process.returncode != 0:
-                raise Exception(f"安装依赖失败: {stderr.decode()}")
+            result = subprocess.run(['pip', 'install', '-r', 'requirements.txt'], cwd=tasks_dir, capture_output=True, text=True, check=True)
+            for line in result.stdout.splitlines():
+                add_log('install', line)
+            for line in result.stderr.splitlines():
+                add_log('install', line)
             return True
-        except Exception as e:
-            logs.append(f"Install error: {str(e)}")
-            raise
+        except subprocess.CalledProcessError as e:
+            for line in e.stdout.splitlines():
+                add_log('install', line)
+            for line in e.stderr.splitlines():
+                add_log('install', line)
+            raise Exception(f"安装依赖失败: {e.stderr}")
     return False
-
-async def start_background(tasks_dir, logs):
-    try:
-        await install_requirements_if_exists(tasks_dir, logs)
-        process = await asyncio.create_subprocess_exec(
-            'python', 'taskrunner.py',
-            cwd=os.path.dirname(__file__) + '/../..',
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
-        process_store['taskrunner'] = process
-
-        async def read_output(stream, prefix):
-            while True:
-                line = await stream.readline()
-                if not line:
-                    break
-                logs.append(f"{prefix}: {line.decode().strip()}")
-
-        await asyncio.gather(
-            read_output(process.stdout, "TaskRunner stdout"),
-            read_output(process.stderr, "TaskRunner stderr")
-        )
-    except Exception as e:
-        logs.append(f"Start error: {str(e)}")
 
 @router.get('/system/health')
 async def health_check():
     """健康检查接口"""
     return success_response(data={"status": "healthy"})
 
+@router.post("/process/install", dependencies=[Depends(verify_token)])
+async def install_dependencies():
+    """
+    安装依赖接口
+    """
+    tasks_dir = os.getenv('TASKS_DIR', '/workspaces/TaskRun/examleTask')
+    
+    def install():
+        try:
+            install_requirements_if_exists(tasks_dir)
+        except Exception as e:
+            # 错误已在 install_requirements_if_exists 中记录到日志
+            pass
+    
+    threading.Thread(target=install).start()
+    return success_response(msg="依赖安装已开始")
+
 @router.post("/process/start", dependencies=[Depends(verify_token)])
-async def start_process(background_tasks: BackgroundTasks):
+async def start_process():
     """
     启动子进程接口
     """
-    if 'taskrunner' in process_store and process_store['taskrunner'].returncode is None:
+    if 'taskrunner' in process_store and process_store['taskrunner'].poll() is None:
         return error_response(msg="进程已在运行")
     
-    tasks_dir = os.getenv('TASKS_DIR', '/workspaces/TaskRun/examleTask')
-    background_tasks.add_task(start_background, tasks_dir, logs)
-    return success_response(msg="进程启动中")
+    try:
+        process_store['taskrunner'] = subprocess.Popen(['python', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..', stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        threading.Thread(target=read_output, args=(process_store['taskrunner'].stdout, 'process')).start()
+        threading.Thread(target=read_output, args=(process_store['taskrunner'].stderr, 'process')).start()
+        return success_response(msg="进程启动成功")
+    except Exception as e:
+        return error_response(msg=f"启动失败: {str(e)}")
 
 @router.post("/process/restart", dependencies=[Depends(verify_token)])
-async def restart_process(background_tasks: BackgroundTasks):
+async def restart_process():
     """
     重启子进程接口
     """
     try:
-        # 先停止
+        # 先停止所有相关的 taskrunner 进程
+        result = subprocess.run(['pkill', '-f', 'taskrunner.py'], capture_output=True, text=True)
+        
+        # 清理存储的进程引用
         if 'taskrunner' in process_store:
-            process_store['taskrunner'].terminate()
-            await process_store['taskrunner'].wait()
             del process_store['taskrunner']
         
-        tasks_dir = os.getenv('TASKS_DIR', '/workspaces/TaskRun/examleTask')
-        background_tasks.add_task(start_background, tasks_dir, logs)
-        return success_response(msg="进程重启中")
+        # 再启动
+        process_store['taskrunner'] = subprocess.Popen(['python', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..', stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        threading.Thread(target=read_output, args=(process_store['taskrunner'].stdout, 'process')).start()
+        threading.Thread(target=read_output, args=(process_store['taskrunner'].stderr, 'process')).start()
+        return success_response(msg="进程重启成功")
     except Exception as e:
         return error_response(msg=f"重启失败: {str(e)}")
 
@@ -100,11 +103,17 @@ async def stop_process():
     终止子进程接口
     """
     try:
+        # 使用 pkill 终止所有 taskrunner.py 进程
+        result = subprocess.run(['pkill', '-f', 'taskrunner.py'], capture_output=True, text=True)
+        
+        # 清理存储的进程引用
         if 'taskrunner' in process_store:
-            process_store['taskrunner'].terminate()
-            await process_store['taskrunner'].wait()
             del process_store['taskrunner']
-        return success_response(msg="进程终止成功")
+        
+        if result.returncode == 0 or result.returncode == 1:  # 0 表示找到并终止，1 表示未找到
+            return success_response(msg="进程终止成功")
+        else:
+            return error_response(msg=f"终止失败: {result.stderr}")
     except Exception as e:
         return error_response(msg=f"终止失败: {str(e)}")
 
@@ -113,14 +122,21 @@ async def get_process_status():
     """
     查询子进程状态接口
     """
-    if 'taskrunner' in process_store and process_store['taskrunner'].returncode is None:
+    if 'taskrunner' in process_store and process_store['taskrunner'].poll() is None:
         return success_response(data={"status": "running", "pid": process_store['taskrunner'].pid})
     else:
         return success_response(data={"status": "stopped"})
 
-@router.get("/logs", dependencies=[Depends(verify_token)])
-async def get_logs():
+@router.get('/logs', dependencies=[Depends(verify_token)])
+async def get_process_logs():
     """
-    查询日志接口
+    查看子进程日志接口
     """
-    return success_response(data={"logs": list(logs)})
+    return success_response(data={'logs': logs_store['process']})
+
+@router.get('/install/logs', dependencies=[Depends(verify_token)])
+async def get_install_logs():
+    """
+    查看安装日志接口
+    """
+    return success_response(data={'logs': logs_store['install']})

@@ -1,0 +1,2 @@
+imapclient==3.0.0
+requests[socks]==2.31.0

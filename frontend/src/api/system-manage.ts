@@ -73,3 +73,23 @@ export function fetchLogs() {
     url: '/api/logs'
   })
 }
+
+/**
+ * 安装依赖
+ * @returns 安装结果
+ */
+export function fetchInstallDependencies() {
+  return request.post({
+    url: '/api/process/install'
+  })
+}
+
+/**
+ * 获取安装日志
+ * @returns 安装日志列表
+ */
+export function fetchInstallLogs() {
+  return request.get<Api.Common.CommonResponse & { data: { logs: string[] } }>({
+    url: '/api/install/logs'
+  })
+}
