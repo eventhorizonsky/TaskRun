@@ -448,8 +448,19 @@ const switchTab = (path: string) => {
   if (path === editorTabStore.activeTabPath) return
 
   // 保存当前Tab的ViewState
-  if (editorTabStore.activeTabPath && editor) {
+  if (editorTabStore.activeTabPath && editor && modelMap.has(editorTabStore.activeTabPath)) {
     viewStateMap.set(editorTabStore.activeTabPath, editor.saveViewState())
+  }
+
+  // 如果Model不存在（可能是刷新后），则重新打开文件
+  if (!modelMap.has(path)) {
+    const tab = editorTabStore.tabs.find(t => t.path === path)
+    if (tab) {
+      openFile(tab)
+    } else {
+      editorTabStore.setActiveTab(path)
+    }
+    return
   }
 
   editorTabStore.setActiveTab(path)
@@ -725,8 +736,7 @@ const initEditor = async () => {
     // Register the themes from Shiki, and provide syntax highlighting for Monaco.
     shikiToMonaco(highlighter, monaco)
   if (!editorContainer.value) {
-    console.error('编辑器容器未找到')
-    ElMessage.error('编辑器容器未找到')
+    console.info('编辑器容器未找到,可能暂未打开文件')
     return
   }
 
@@ -867,11 +877,20 @@ onMounted(async () => {
   // 等待DOM更新完成
   await nextTick()
 
+  // 初始化编辑器
+  await initEditor()
+
   // 加载文件列表
   loadFilesList()
 
   // 加载进程状态
   refreshProcessStatus()
+
+  // 恢复上次打开的Tab
+  if (editorTabStore.activeTab) {
+    console.log('恢复上次打开的Tab:', editorTabStore.activeTab.name)
+    openFile(editorTabStore.activeTab)
+  }
 
   // 监听窗口大小变化，自动调整编辑器大小
   const resizeHandler = () => {
