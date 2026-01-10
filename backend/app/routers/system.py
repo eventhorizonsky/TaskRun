@@ -129,7 +129,7 @@ async def start_process():
         return error_response(msg="进程已在运行")
     
     try:
-        process_store['taskrunner'] = subprocess.Popen(['python', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..', stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process_store['taskrunner'] = subprocess.Popen(['python', '-u', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..', stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         threading.Thread(target=read_output, args=(process_store['taskrunner'].stdout, 'process')).start()
         threading.Thread(target=read_output, args=(process_store['taskrunner'].stderr, 'process')).start()
         return success_response(msg="进程启动成功")
@@ -150,7 +150,7 @@ async def restart_process():
             del process_store['taskrunner']
         
         # 再启动
-        process_store['taskrunner'] = subprocess.Popen(['python', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..', stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        process_store['taskrunner'] = subprocess.Popen(['python', '-u', 'taskrunner.py'], cwd=os.path.dirname(__file__) + '/../..', stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         threading.Thread(target=read_output, args=(process_store['taskrunner'].stdout, 'process')).start()
         threading.Thread(target=read_output, args=(process_store['taskrunner'].stderr, 'process')).start()
         return success_response(msg="进程重启成功")
