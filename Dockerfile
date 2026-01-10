@@ -30,6 +30,7 @@ ENV ADMIN_PASSWORD=admin
 ENV SQLACHEMY_ENGINE_URL=mysql://root:xyztxdys@172.17.0.1:3306/test
 # 复制后端依赖并安装（CI 已构建前端到 `frontend/dist`）
 COPY backend/requirements.txt /app/requirements.txt
+ENV PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # 复制后端代码

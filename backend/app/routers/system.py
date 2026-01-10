@@ -71,6 +71,10 @@ def install_requirements_if_exists(tasks_dir):
     req_file = os.path.join(tasks_dir, 'requirements.txt')
     if os.path.exists(req_file):
         try:
+            # 记录当前的 PIP_INDEX_URL
+            pip_index_url = os.getenv('PIP_INDEX_URL', 'Not Set')
+            add_log('install', f"Current PIP_INDEX_URL: {pip_index_url}")
+
             # 使用Popen替代run以实时捕获输出
             process = subprocess.Popen(
                 ['pip', 'install', '-r', 'requirements.txt'],
