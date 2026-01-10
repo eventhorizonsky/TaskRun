@@ -15,7 +15,7 @@
         </el-tag>
       </div>
     </div>
-    <div class="log-container" ref="logContainerRef">
+    <div class="log-container" ref="logContainerRef" @scroll="handleScroll">
       <!-- 使用 v-html 渲染解析后的HTML -->
       <div class="log-content" v-html="formattedLogs"></div>
     </div>
@@ -101,6 +101,7 @@ const formattedLogs = computed(() => {
 watch(() => props.modelValue, (newVal) => {
   visible.value = newVal
   if (newVal) {
+    autoScroll.value = true
     connectSSE()
     if (props.logType === 'process') {
       updateProcessStatus()
