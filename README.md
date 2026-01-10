@@ -1,5 +1,9 @@
 # TaskRun
 
+![TaskRun](https://socialify.git.ci/eventhorizonsky/TaskRun/image?description=1&font=Bitter&issues=1&language=1&logo=&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
+
+<!-- PROJECT LOGO -->
+<br />
 ## 项目简介
 
 这是一个基于 Funboost 开发的 Python 任务管理程序。前后端分离架构，后端使用 FastAPI，前端使用 Vue.js。项目依赖 MySQL 和 Redis 作为中间件，用于任务队列管理和数据存储。
@@ -168,9 +172,9 @@ frontend/
 这是一个基于funboost开发的python任务管理程序。项目依赖 MySQL 和 Redis 作为中间件。
 
 ### 1. 拉取 Docker 镜像
-首先，从 Docker Hub 拉取最新的镜像（由 CI/CD 自动构建和推送）：
+首先，从 GitHub Container Registry（GHCR） 拉取最新的镜像（由 CI/CD 自动构建和推送）：
 ```bash
-docker pull ezsky111/taskrun:latest
+docker pull ghcr.io/eventhorizonsky/taskrun:latest
 ```
 
 ### 2. 运行容器（基础指令）
@@ -195,7 +199,7 @@ docker run -d \
   -e LOGS_DIR="/app/logs" \
   -v /host/path/to/tasks:/app/tasks \
   -v /host/path/to/logs:/app/logs \
-  ezsky111/taskrun:latest
+  ghcr.io/eventhorizonsky/taskrun:latest
 ```
 
 - **说明**：
@@ -207,6 +211,20 @@ docker run -d \
   - 健康检查会每 30 秒检查 `/api/system/health` 端点。
 
 **注意**：这种方式需要单独管理 MySQL 和 Redis（例如，使用 `docker run` 启动它们）。推荐使用 docker-compose 以简化依赖管理。
+
+## 截图预览
+
+**在线编辑器**
+![在线编辑器](docs/img/editor.png)
+**任务看板**
+![任务看板](docs/img/kanban.png)
+**进程日志跟踪**
+![进程日志跟踪（滚动）](docs/img/logfollow.gif)
+**依赖安装演示**
+![依赖安装演示](docs/img/requireinstall.gif)
+**任务管理页面**
+![任务管理页面](docs/img/taskmanager.png)
+
 
 ### 3. 环境变量含义
 Dockerfile 中定义的环境变量用于配置应用。以下是每个变量的含义和默认值（如果未设置）：
@@ -224,6 +242,9 @@ Dockerfile 中定义的环境变量用于配置应用。以下是每个变量的
 - **REDIS_DB_FILTER_AND_RPC_RESULT**: Redis 用于过滤和 RPC 结果的数据库编号。默认值: `8`。
 - **REDIS_SSL**: 是否启用 Redis SSL 连接。默认值: `False`（布尔值）。
 - **SQLACHEMY_ENGINE_URL**: SQLAlchemy 数据库连接 URL（用于 MySQL）。默认值: `mysql://root:xyztxdys@172.17.0.1:3306/test`。格式: `mysql://user:password@host:port/database`。
+- **PIP_INDEX_URL**: Pip 安装源地址（构建/镜像构建阶段使用）。默认值: `https://pypi.tuna.tsinghua.edu.cn/simple`。
+
+请根据部署场景替换敏感变量，生产环境建议使用 Docker secrets 或 `.env` 文件管理。 
 
 **安全建议**：
 - 不要使用默认的 `SECRET_KEY`、`ADMIN_USERNAME` 和 `ADMIN_PASSWORD` 在生产环境中。
@@ -237,7 +258,7 @@ version: '3.8'
 
 services:
   app:
-    image: ezsky111/taskrun:latest
+    image: ghcr.io/eventhorizonsky/taskrun:latest
     ports:
       - "8000:8000"
     environment:
@@ -314,3 +335,5 @@ volumes:
 - [FastAPI](https://fastapi.tiangolo.com/) - 现代化的 Python Web 框架，用于构建 API
 - [ArtDesignPro](https://github.com/Daymychen/art-design-pro) - 前端设计框架
 - [Funboost](https://github.com/ydf0509/funboost) - Python 任务队列框架，用于分布式任务管理
+ - [Shiki](https://github.com/shikijs/shiki) - 代码高亮器，用于文档/前端代码渲染
+ - [Monaco Editor](https://github.com/microsoft/monaco-editor) - 浏览器端代码编辑器，用于在线编辑器界面
