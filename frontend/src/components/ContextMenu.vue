@@ -22,8 +22,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted } from 'vue'
-import { DocumentAdd, FolderAdd, Edit, Delete } from '@element-plus/icons-vue'
+import { computed, onMounted, onUnmounted, watch } from 'vue'
+import { DocumentAdd, FolderAdd, Edit, Delete, Close, CloseBold } from '@element-plus/icons-vue'
 
 interface MenuItem {
   label: string
@@ -39,11 +39,32 @@ const props = defineProps<{
   x: number
   y: number
   targetNode: any
+  menuType?: 'file' | 'tab'
 }>()
 
 const emit = defineEmits(['update:visible', 'select'])
 
 const menuItems = computed<MenuItem[]>(() => {
+  console.log('ContextMenu menuItems computed', {
+    menuType: props.menuType,
+    visible: props.visible,
+    targetNode: props.targetNode
+  })
+  
+  // Tab context menu
+  if (props.menuType === 'tab') {
+    const items = [
+      { label: '关闭', icon: Close, action: 'close', show: true },
+      { label: '关闭未修改', icon: Close, action: 'close-unmodified', show: true },
+      { label: '关闭其他', icon: Close, action: 'close-others', show: true },
+      { label: '关闭右侧', icon: Close, action: 'close-right', show: true },
+      { label: '关闭左侧', icon: Close, action: 'close-left', show: true }
+    ].filter(item => item.show)
+    console.log('Tab menu items:', items)
+    return items
+  }
+  
+  // File tree context menu
   const isDir = props.targetNode?.data?.type === 'directory'
   
   return [
@@ -55,24 +76,50 @@ const menuItems = computed<MenuItem[]>(() => {
 })
 
 const handleClick = (item: any) => {
+  // For tab menu, pass the targetNode directly (it's the tab object)
+  // For file tree menu, pass the targetNode (it's the tree node)
   emit('select', item.action, props.targetNode)
   emit('update:visible', false)
 }
 
 // Click outside to close
 const closeMenu = (e: MouseEvent) => {
-  if (props.visible) {
-    emit('update:visible', false)
+  emit('update:visible', false)
+}
+
+// Add event listeners only when menu becomes visible
+// Remove them when menu is hidden
+let listenersAdded = false
+
+const addListeners = () => {
+  if (!listenersAdded) {
+    // Use setTimeout to avoid closing immediately due to the same event that opened the menu
+    setTimeout(() => {
+      document.addEventListener('click', closeMenu, { capture: true })
+      document.addEventListener('contextmenu', closeMenu, { capture: true })
+      listenersAdded = true
+    }, 10)
   }
 }
 
-onMounted(() => {
-  document.addEventListener('click', closeMenu)
-  document.addEventListener('contextmenu', closeMenu) // Close on right click elsewhere
+const removeListeners = () => {
+  if (listenersAdded) {
+    document.removeEventListener('click', closeMenu, { capture: true })
+    document.removeEventListener('contextmenu', closeMenu, { capture: true })
+    listenersAdded = false
+  }
+}
+
+// Watch visibility changes
+watch(() => props.visible, (newVal) => {
+  if (newVal) {
+    addListeners()
+  } else {
+    removeListeners()
+  }
 })
 
 onUnmounted(() => {
-  document.removeEventListener('click', closeMenu)
-  document.removeEventListener('contextmenu', closeMenu)
+  removeListeners()
 })
 </script>

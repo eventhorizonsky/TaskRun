@@ -179,6 +179,7 @@
                   : (editorTabStore.activeTabPath === tab.path ? 'bg-white text-gray-800 border-t-2 border-t-blue-500' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200')
               ]"
               @click="switchTab(tab.path)"
+              @contextmenu="(e) => handleTabContextMenu(e, tab)"
             >
               <div class="flex items-center gap-1.5 flex-1 min-w-0">
                 <el-icon :class="['text-sm flex-shrink-0', isDark ? 'text-gray-400' : 'text-gray-600']">
@@ -229,13 +230,23 @@
     <!-- 日志弹窗 -->
     <LogDialog v-model="logDialogVisible" :logType="logType" />
 
-    <!-- 右键菜单 -->
+    <!-- 文件树右键菜单 -->
     <ContextMenu
       v-model:visible="contextMenuVisible"
       :x="contextMenuX"
       :y="contextMenuY"
       :targetNode="contextMenuTarget"
       @select="handleContextMenuSelect"
+    />
+
+    <!-- Tab右键菜单 -->
+    <ContextMenu
+      v-model:visible="tabContextMenuVisible"
+      :x="tabContextMenuX"
+      :y="tabContextMenuY"
+      :targetNode="tabContextMenuTarget"
+      :menuType="'tab'"
+      @select="handleTabContextMenuSelect"
     />
   </ElCard>
 </template>
@@ -310,11 +321,17 @@ const createForm = reactive({
 const logDialogVisible = ref(false)
 const logType = ref<'process' | 'install'>('process')
 
-// 右键菜单
+// 文件树右键菜单
 const contextMenuVisible = ref(false)
 const contextMenuX = ref(0)
 const contextMenuY = ref(0)
 const contextMenuTarget = ref<any>(null)
+
+// Tab右键菜单
+const tabContextMenuVisible = ref(false)
+const tabContextMenuX = ref(0)
+const tabContextMenuY = ref(0)
+const tabContextMenuTarget = ref<any>(null)
 
 // 计算过滤后的文件列表
 const filterFilesList = computed(() => {
@@ -860,6 +877,161 @@ const handleContextMenuSelect = async (action: string, node: any) => {
         }
       }).catch(() => {})
       break
+  }
+}
+
+// 处理Tab右键菜单
+const handleTabContextMenu = (event: MouseEvent, tab: any) => {
+  console.log('Tab context menu triggered', tab)
+  event.preventDefault()
+  tabContextMenuX.value = event.clientX
+  tabContextMenuY.value = event.clientY
+  tabContextMenuTarget.value = tab
+  tabContextMenuVisible.value = true
+  console.log('Tab context menu state:', {
+    visible: tabContextMenuVisible.value,
+    x: tabContextMenuX.value,
+    y: tabContextMenuY.value,
+    target: tabContextMenuTarget.value
+  })
+}
+
+// 处理Tab菜单选择
+const handleTabContextMenuSelect = async (action: string, tab: any) => {
+  const path = tab.path
+  
+  switch (action) {
+    case 'close':
+      closeTab(path)
+      break
+    case 'close-unmodified':
+      closeUnmodifiedTabs()
+      break
+    case 'close-others':
+      closeOtherTabs(path)
+      break
+    case 'close-right':
+      closeTabsToRight(path)
+      break
+    case 'close-left':
+      closeTabsToLeft(path)
+      break
+  }
+}
+
+// 直接关闭Tab（不提示）
+const closeTabDirect = (path: string) => {
+  performCloseTab(path)
+}
+
+// 关闭所有未修改的Tab
+const closeUnmodifiedTabs = () => {
+  const unmodifiedTabs = editorTabStore.tabs.filter(tab => !tab.isModified)
+  unmodifiedTabs.forEach(tab => {
+    performCloseTab(tab.path)
+  })
+  if (unmodifiedTabs.length > 0) {
+    ElMessage.success(`已关闭 ${unmodifiedTabs.length} 个未修改的标签页`)
+  } else {
+    ElMessage.info('没有未修改的标签页')
+  }
+}
+
+// 关闭其他Tab
+const closeOtherTabs = (keepPath: string) => {
+  const otherTabs = editorTabStore.tabs.filter(tab => tab.path !== keepPath)
+  const modifiedTabs = otherTabs.filter(tab => tab.isModified)
+  
+  if (modifiedTabs.length > 0) {
+    ElMessageBox.confirm(
+      `有 ${modifiedTabs.length} 个标签页包含未保存的更改，确定要关闭吗？`,
+      '提示',
+      {
+        confirmButtonText: '关闭',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      otherTabs.forEach(tab => {
+        performCloseTab(tab.path)
+      })
+      ElMessage.success(`已关闭 ${otherTabs.length} 个标签页`)
+    }).catch(() => {})
+  } else {
+    otherTabs.forEach(tab => {
+      performCloseTab(tab.path)
+    })
+    if (otherTabs.length > 0) {
+      ElMessage.success(`已关闭 ${otherTabs.length} 个标签页`)
+    }
+  }
+}
+
+// 关闭右侧Tab
+const closeTabsToRight = (fromPath: string) => {
+  const currentIndex = editorTabStore.tabs.findIndex(tab => tab.path === fromPath)
+  if (currentIndex === -1 || currentIndex === editorTabStore.tabs.length - 1) {
+    ElMessage.info('右侧没有标签页')
+    return
+  }
+  
+  const rightTabs = editorTabStore.tabs.slice(currentIndex + 1)
+  const modifiedTabs = rightTabs.filter(tab => tab.isModified)
+  
+  if (modifiedTabs.length > 0) {
+    ElMessageBox.confirm(
+      `有 ${modifiedTabs.length} 个标签页包含未保存的更改，确定要关闭吗？`,
+      '提示',
+      {
+        confirmButtonText: '关闭',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      rightTabs.forEach(tab => {
+        performCloseTab(tab.path)
+      })
+      ElMessage.success(`已关闭 ${rightTabs.length} 个标签页`)
+    }).catch(() => {})
+  } else {
+    rightTabs.forEach(tab => {
+      performCloseTab(tab.path)
+    })
+    ElMessage.success(`已关闭 ${rightTabs.length} 个标签页`)
+  }
+}
+
+// 关闭左侧Tab
+const closeTabsToLeft = (fromPath: string) => {
+  const currentIndex = editorTabStore.tabs.findIndex(tab => tab.path === fromPath)
+  if (currentIndex === -1 || currentIndex === 0) {
+    ElMessage.info('左侧没有标签页')
+    return
+  }
+  
+  const leftTabs = editorTabStore.tabs.slice(0, currentIndex)
+  const modifiedTabs = leftTabs.filter(tab => tab.isModified)
+  
+  if (modifiedTabs.length > 0) {
+    ElMessageBox.confirm(
+      `有 ${modifiedTabs.length} 个标签页包含未保存的更改，确定要关闭吗？`,
+      '提示',
+      {
+        confirmButtonText: '关闭',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    ).then(() => {
+      leftTabs.forEach(tab => {
+        performCloseTab(tab.path)
+      })
+      ElMessage.success(`已关闭 ${leftTabs.length} 个标签页`)
+    }).catch(() => {})
+  } else {
+    leftTabs.forEach(tab => {
+      performCloseTab(tab.path)
+    })
+    ElMessage.success(`已关闭 ${leftTabs.length} 个标签页`)
   }
 }
 
