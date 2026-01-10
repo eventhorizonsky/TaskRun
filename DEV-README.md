@@ -51,4 +51,6 @@ CREATE TABLE `funboost_consume_results` (
 pip install pipreqs
 # 生成仅包含项目实际依赖的requirements.txt（UTF-8编码）
 pipreqs ./ --encoding=utf8 --force
+$env:TASKS_DIR ='D:\MyProject\TaskRun\examleTask'
+$env:SQLACHEMY_ENGINE_URL ='mysql://root:xyztxdys@192.168.123.76:3306/test'
 ```

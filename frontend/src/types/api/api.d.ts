@@ -315,4 +315,51 @@ declare namespace Api {
       success: boolean
     }
   }
+
+  /** Files类型 */
+  namespace Files {
+    /** 文件信息项 */
+    interface FileItem {
+      name: string
+      path: string
+      is_dir: boolean
+      size?: number
+      mtime?: string
+    }
+
+    /** 列出文件响应数据 */
+    interface ListFilesData {
+      items: FileItem[]
+      count: number
+    }
+
+    /** 读取文件响应数据 */
+    interface ReadFileData {
+      content: string
+      path: string
+    }
+
+    /** 写入文件参数 */
+    interface WriteFileParams {
+      path: string
+      content: string
+    }
+
+    /** 删除文件参数 */
+    interface DeleteFileParams {
+      path: string
+    }
+
+    /** 创建文件参数 */
+    interface CreateFileParams {
+      path: string
+      is_dir: boolean
+    }
+
+    /** 文件操作响应数据 */
+    interface FileOperationData {
+      success: boolean
+      msg: string
+    }
+  }
 }

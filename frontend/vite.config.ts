@@ -74,9 +74,7 @@ export default ({ mode }: { mode: string }) => {
         dts: 'src/types/import/auto-imports.d.ts',
         resolvers: [ElementPlusResolver()],
         eslintrc: {
-          enabled: true,
-          filepath: './.auto-import.json',
-          globalsPropValue: true
+          enabled: false
         }
       }),
       // 自动按需导入组件
@@ -155,3 +153,4 @@ export default ({ mode }: { mode: string }) => {
 function resolvePath(paths: string) {
   return path.resolve(__dirname, paths)
 }
+

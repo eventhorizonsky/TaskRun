@@ -1,0 +1,63 @@
+@reference "../../../assets/styles/core/tailwind.css";
+
+/* Task Editor Custom Styles */
+
+.task-editor-card :deep(.el-card__body) {
+    @apply flex flex-col flex-1 p-0;
+    /* Remove default padding if needed, or keep it consistent */
+}
+
+/* Tree Styles */
+.task-editor-tree {
+    @apply bg-transparent py-2;
+}
+
+.task-editor-tree :deep(.el-tree-node__content) {
+    @apply h-8 rounded transition-all my-0.5 mx-1.5 pr-2;
+}
+
+.task-editor-tree :deep(.el-tree-node__content:hover) {
+    @apply translate-x-0.5;
+}
+
+.task-editor-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
+    @apply font-medium;
+}
+
+.task-editor-tree :deep(.el-tree-node__label) {
+    @apply text-xs font-medium ml-1.5;
+}
+
+.task-editor-tree :deep(.el-icon) {
+    @apply text-base flex-shrink-0;
+}
+
+.task-editor-tree :deep(.el-tree-node__expand-icon) {
+    @apply w-5 text-center;
+}
+
+/* Dark Mode Specifics for Tree */
+.dark-mode .task-editor-tree {
+    @apply text-gray-300;
+}
+
+.dark-mode .task-editor-tree :deep(.el-tree-node__content:hover) {
+    @apply bg-[#3e3e3e];
+}
+
+.dark-mode .task-editor-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
+    @apply bg-blue-700 text-white;
+}
+
+/* Light Mode Specifics for Tree */
+.light-mode .task-editor-tree {
+    @apply text-gray-900;
+}
+
+.light-mode .task-editor-tree :deep(.el-tree-node__content:hover) {
+    @apply bg-gray-100;
+}
+
+.light-mode .task-editor-tree :deep(.el-tree-node.is-current > .el-tree-node__content) {
+    @apply bg-blue-100 text-blue-900;
+}

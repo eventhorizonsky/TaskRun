@@ -1,6 +1,6 @@
 <template>
   <ElCard :class="[
-    'flex flex-col w-full',
+    'flex flex-col w-full task-editor-card',
     isDark ? 'dark-mode' : 'light-mode'
   ]">
     <!-- 头部工具栏 -->
@@ -15,8 +15,8 @@
             刷新
           </el-button>
           <el-button size="small" @click="showCreateDialog">新建</el-button>
-          <el-button size="small" @click="saveCurrentFile" :disabled="!currentFile">保存</el-button>
-          <el-button size="small" @click="refreshCurrentFile" :disabled="!currentFile">重载</el-button>
+          <el-button size="small" @click="saveCurrentFile" :disabled="!currentTab">保存</el-button>
+          <el-button size="small" @click="refreshCurrentFile" :disabled="!currentTab">重载</el-button>
         </div>
         <el-input
           v-model="searchInput"
@@ -24,7 +24,6 @@
           size="small"
           class="w-full md:w-40"
           clearable
-          @input="handleSearch"
         />
       </div>
 
@@ -117,8 +116,7 @@
           @node-click="handleNodeClick"
           :expand-on-click-node="false"
           :class="[
-            'flex-1 overflow-y-auto',
-            isDark ? 'tree-dark' : 'tree-light'
+            'flex-1 overflow-y-auto task-editor-tree'
           ]"
         >
           <template #default="{ node, data }">
@@ -138,35 +136,44 @@
         'flex-1 flex flex-col overflow-hidden',
         isDark ? 'bg-[#1e1e1e]' : 'bg-white'
       ]" style="height:calc(-210px + 100vh)">
-        <div v-if="!currentFile" class="flex items-center justify-center flex-1 w-full">
+        <div v-if="editorTabStore.tabs.length === 0" class="flex items-center justify-center flex-1 w-full">
           <el-empty :class="isDark ? 'text-gray-600' : 'text-gray-400'" description="选择文件开始编辑" />
         </div>
         <div v-else class="flex flex-col flex-1 w-full overflow-hidden">
+          <!-- 标签栏 -->
           <div :class="[
             'flex items-center flex-shrink-0 border-b overflow-x-auto overflow-y-hidden',
-            isDark ? 'bg-[#1e1e1e] border-[#3e3e3e]' : 'bg-gray-50 border-gray-200'
+            isDark ? 'bg-[#252526] border-[#3e3e3e]' : 'bg-gray-100 border-gray-200'
           ]"
             style="scrollbar-width: thin"
           >
-            <div :class="[
-              'flex items-center justify-between flex-shrink-0 px-3 h-9 gap-1 border-r border-b-2 relative transition-all whitespace-nowrap cursor-pointer text-xs font-medium',
-              isDark ? 'bg-[#1e1e1e] text-gray-300 border-[#3e3e3e] border-b-blue-500' : 'bg-white text-gray-700 border-gray-200 border-b-blue-500'
-            ]">
+            <div
+              v-for="tab in editorTabStore.tabs"
+              :key="tab.path"
+              :class="[
+                'flex items-center justify-between flex-shrink-0 px-3 h-9 gap-2 border-r relative transition-all whitespace-nowrap cursor-pointer text-xs select-none',
+                isDark 
+                  ? (editorTabStore.activeTabPath === tab.path ? 'bg-[#1e1e1e] text-gray-200 border-t-2 border-t-blue-500' : 'bg-[#2d2d2d] text-gray-500 border-[#3e3e3e] hover:bg-[#2a2a2a]') 
+                  : (editorTabStore.activeTabPath === tab.path ? 'bg-white text-gray-800 border-t-2 border-t-blue-500' : 'bg-gray-100 text-gray-500 border-gray-200 hover:bg-gray-200')
+              ]"
+              @click="switchTab(tab.path)"
+            >
               <div class="flex items-center gap-1.5 flex-1 min-w-0">
                 <el-icon :class="['text-sm flex-shrink-0', isDark ? 'text-gray-400' : 'text-gray-600']">
                   <Document />
                 </el-icon>
-                <span class="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis">{{ currentFile.name }}</span>
-                <span v-if="isContentModified" :class="['w-1.5 h-1.5 rounded-full flex-shrink-0 ml-1', isDark ? 'bg-yellow-500' : 'bg-blue-500']" title="有未保存的更改"></span>
+                <span class="flex-1 min-w-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]">{{ tab.name }}</span>
+                <span v-if="tab.isModified" :class="['w-2 h-2 rounded-full flex-shrink-0 ml-1', isDark ? 'bg-white' : 'bg-black']" title="有未保存的更改"></span>
               </div>
               <el-icon 
-                :class="['w-5 h-5 flex-shrink-0 cursor-pointer opacity-60 hover:opacity-100 rounded transition-all', isDark ? 'hover:bg-gray-700' : 'hover:bg-gray-200']"
-                @click="closeFile"
+                :class="['w-4 h-4 flex-shrink-0 cursor-pointer opacity-60 hover:opacity-100 rounded transition-all p-0.5', isDark ? 'hover:bg-gray-600' : 'hover:bg-gray-300']"
+                @click.stop="closeTab(tab.path)"
               >
                 <Close />
               </el-icon>
             </div>
           </div>
+          
           <div
             id="monaco-editor"
             ref="editorContainer"
@@ -203,10 +210,15 @@
 </template>
 
 <script setup lang="ts">
+import './task-editor.css'
 import { ref, reactive, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+// ... rest of imports
+import { shikiToMonaco } from '@shikijs/monaco'
+import { createHighlighter } from 'shiki'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Close, Folder, Document } from '@element-plus/icons-vue'
 import { useSettingStore } from '@/store/modules/setting'
+import { useEditorTabStore } from '@/store/modules/editorTab'
 import {
   fetchListFiles,
   fetchReadFile,
@@ -216,27 +228,30 @@ import {
 } from '@/api/files'
 import { fetchStartProcess, fetchRestartProcess, fetchStopProcess, fetchGetProcessStatus, fetchInstallDependencies } from '@/api/system-manage'
 import LogDialog from '@/components/LogDialog.vue'
+import loader from '@monaco-editor/loader'
 
 const RefreshIcon = Refresh
 
-// 动态导入Monaco编辑器
+// 动态加载Monaco编辑器
 let monaco: any = null
 let editor: any = null
+const modelMap = new Map<string, any>() // 存储文件路径到Monaco Model的映射
+const viewStateMap = new Map<string, any>() // 存储文件路径到Monaco ViewState的映射
 
 // 获取设置store
 const settingStore = useSettingStore()
+const editorTabStore = useEditorTabStore()
 
 // 判断是否为深色主题
 const isDark = computed(() => settingStore.isDark)
 
 // 数据
 const filesList = ref<any[]>([])
-const currentFile = ref<any>(null)
-const currentFileContent = ref<string>('')
-const isContentModified = ref(false)
 const searchInput = ref<string>('')
 const treeRef = ref()
-let ignoreNextChange = false // 用于忽略setValue导致的修改事件
+
+// 当前激活的Tab
+const currentTab = computed(() => editorTabStore.activeTab)
 
 // 文件加载loading状态
 const fileLoading = ref(false)
@@ -304,9 +319,7 @@ const loadFilesList = async () => {
 // 加载子节点（懒加载）
 const loadChildNodes = async (node: any, resolve: Function) => {
   try {
-    console.log('加载子节点，节点数据:', node.data)
     const path = node.data.path
-    console.log('加载子节点，节点路径:', path)
     const res = await fetchListFiles(path)
     const items = res.items || []
     const children = items.map((item: any) => ({
@@ -324,23 +337,37 @@ const loadChildNodes = async (node: any, resolve: Function) => {
 // 处理节点点击
 const handleNodeClick = async (node: any) => {
   if (node.type === 'file') {
-    fileLoading.value = true
-    try {
-      await loadFile(node)
-    } finally {
-      fileLoading.value = false
-    }
+    await openFile(node)
   }
 }
 
-// 加载文件内容
-const loadFile = async (file: any) => {
+// 打开文件（创建或切换Tab）
+const openFile = async (file: any) => {
+  // 保存当前Tab的ViewState
+  if (editorTabStore.activeTabPath && editor) {
+    viewStateMap.set(editorTabStore.activeTabPath, editor.saveViewState())
+  }
+
+  editorTabStore.openTab(file)
+  
+  // 如果Model已存在，直接切换
+  if (modelMap.has(file.path)) {
+    if (editor) {
+      editor.setModel(modelMap.get(file.path))
+      // 恢复ViewState
+      if (viewStateMap.has(file.path)) {
+        editor.restoreViewState(viewStateMap.get(file.path))
+      }
+      editor.focus()
+    }
+    return
+  }
+
+  // 否则加载内容并创建Model
+  fileLoading.value = true
   try {
     const res = await fetchReadFile(file.path)
-    currentFile.value = file
-    currentFileContent.value = res.content
-    isContentModified.value = false
-
+    
     // 等待DOM更新，确保编辑器容器已渲染
     await nextTick()
 
@@ -349,28 +376,99 @@ const loadFile = async (file: any) => {
       await initEditor()
     }
 
-    // 获取文件扩展名用于语言检测
-    const ext = file.name.split('.').pop() || ''
-    const language = getLanguageFromExtension(ext)
-
-    // 更新编辑器内容和语言
-    if (editor && monaco) {
-      // 设置标志，防止setValue触发修改事件
-      ignoreNextChange = true
-      editor.setValue(res.content)
-      monaco.editor.setModelLanguage(editor.getModel()!, language)
-      isContentModified.value = false
+    if (monaco) {
+      // 获取文件扩展名用于语言检测
+      const ext = file.name.split('.').pop() || ''
+      const language = getLanguageFromExtension(ext)
       
-      // 确保编辑器正确布局和显示
-      await nextTick()
-      setTimeout(() => {
-        editor?.layout()
-      }, 0)
-    } else {
-      console.warn('编辑器未初始化:', { editor: !!editor, monaco: !!monaco })
+      // 创建Model
+      const model = monaco.editor.createModel(res.content, language, monaco.Uri.file(file.path))
+      
+      // 监听内容变化
+      model.onDidChangeContent(() => {
+        editorTabStore.setTabModified(file.path, true)
+      })
+
+      modelMap.set(file.path, model)
+      
+      if (editor) {
+        editor.setModel(model)
+        editor.focus()
+      }
     }
   } catch (error) {
     ElMessage.error('加载文件失败: ' + error)
+    // 如果加载失败，关闭刚才打开的Tab
+    editorTabStore.closeTab(file.path)
+  } finally {
+    fileLoading.value = false
+  }
+}
+
+// 切换Tab
+const switchTab = (path: string) => {
+  if (path === editorTabStore.activeTabPath) return
+
+  // 保存当前Tab的ViewState
+  if (editorTabStore.activeTabPath && editor) {
+    viewStateMap.set(editorTabStore.activeTabPath, editor.saveViewState())
+  }
+
+  editorTabStore.setActiveTab(path)
+  if (modelMap.has(path) && editor) {
+    editor.setModel(modelMap.get(path))
+    // 恢复ViewState
+    if (viewStateMap.has(path)) {
+      editor.restoreViewState(viewStateMap.get(path))
+    }
+    editor.focus()
+  }
+}
+
+// 关闭Tab
+const closeTab = (path: string) => {
+  const tab = editorTabStore.tabs.find(t => t.path === path)
+  if (tab?.isModified) {
+    ElMessageBox.confirm(`文件 ${tab.name} 有未保存的更改，确定要关闭吗？`, '提示', {
+      confirmButtonText: '关闭',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }).then(() => {
+      performCloseTab(path)
+    }).catch(() => {})
+  } else {
+    performCloseTab(path)
+  }
+}
+
+const performCloseTab = (path: string) => {
+  // 如果关闭的是当前Tab，先保存ViewState（虽然可能没用了，但保持逻辑一致）
+  // 实际上关闭了就不需要保存了
+  
+  editorTabStore.closeTab(path)
+  // 销毁Model
+  if (modelMap.has(path)) {
+    modelMap.get(path).dispose()
+    modelMap.delete(path)
+  }
+  // 清除ViewState
+  if (viewStateMap.has(path)) {
+    viewStateMap.delete(path)
+  }
+
+  // 如果没有Tab了，清空编辑器Model
+  if (editorTabStore.tabs.length === 0 && editor) {
+    editor.setModel(null)
+  } else {
+    // 切换到新的Active Tab
+    if (editorTabStore.activeTabPath && modelMap.has(editorTabStore.activeTabPath)) {
+      editor.setModel(modelMap.get(editorTabStore.activeTabPath))
+      // 恢复新Tab的ViewState
+      if (viewStateMap.has(editorTabStore.activeTabPath)) {
+        editor.restoreViewState(viewStateMap.get(editorTabStore.activeTabPath))
+      }
+      editor.focus()
+    }
   }
 }
 
@@ -382,7 +480,7 @@ const getLanguageFromExtension = (ext: string): string => {
     ts: 'typescript',
     jsx: 'javascript',
     tsx: 'typescript',
-    vue: 'html',
+    vue: 'html', // vue文件暂时用html高亮，或者注册vue语言
     html: 'html',
     css: 'css',
     scss: 'scss',
@@ -402,15 +500,17 @@ const getLanguageFromExtension = (ext: string): string => {
 
 // 保存文件
 const saveCurrentFile = async () => {
-  if (!currentFile.value || !editor) {
-    return
-  }
+  const path = editorTabStore.activeTabPath
+  if (!path || !modelMap.has(path)) return
 
   try {
-    const content = editor.getValue()
-    await fetchWriteFile(currentFile.value.path, content)
-    isContentModified.value = false
-    currentFileContent.value = content
+    const model = modelMap.get(path)
+    const content = model.getValue()
+    await fetchWriteFile({
+      path: path,
+      content
+    })
+    editorTabStore.setTabModified(path, false)
     ElMessage.success('文件保存成功')
   } catch (error) {
     ElMessage.error('文件保存失败: ' + error)
@@ -419,35 +519,32 @@ const saveCurrentFile = async () => {
 
 // 重新加载文件
 const refreshCurrentFile = async () => {
-  if (currentFile.value) {
-    await loadFile(currentFile.value)
-    ElMessage.success('文件已重新加载')
-  }
-}
+  const path = editorTabStore.activeTabPath
+  if (!path) return
 
-// 关闭文件
-const closeFile = () => {
-  if (isContentModified.value) {
-    ElMessageBox.confirm('文件有未保存的内容，是否关闭？', '提示', {
-      confirmButtonText: '关闭',
-      cancelButtonText: '取消'
-    }).then(() => {
-      currentFile.value = null
-      isContentModified.value = false
-      // 销毁编辑器，重置编辑器实例
-      if (editor) {
-        editor.dispose()
-        editor = null
-      }
-    })
-  } else {
-    currentFile.value = null
-    isContentModified.value = false
-    // 销毁编辑器，重置编辑器实例
-    if (editor) {
-      editor.dispose()
-      editor = null
+  if (editorTabStore.activeTab?.isModified) {
+    try {
+      await ElMessageBox.confirm('文件有未保存的更改，重新加载将丢失这些更改，是否继续？', '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
+    } catch {
+      return
     }
+  }
+
+  // 重新读取文件内容并更新Model
+  try {
+    const res = await fetchReadFile(path)
+    if (modelMap.has(path)) {
+      const model = modelMap.get(path)
+      model.setValue(res.content)
+      editorTabStore.setTabModified(path, false)
+      ElMessage.success('文件已重新加载')
+    }
+  } catch (error) {
+    ElMessage.error('重载失败: ' + error)
   }
 }
 
@@ -468,43 +565,12 @@ const createFileOrDir = async () => {
   try {
     const path = createForm.name
     const isDir = createForm.type === 'directory'
-    const res = await fetchCreateFile(path, isDir)
+    const res = await fetchCreateFile({path:path, is_dir:isDir})
     ElMessage.success('创建成功')
     await loadFilesList()
+    createDialogVisible.value = false
   } catch (error) {
     ElMessage.error('创建失败: ' + error)
-  }
-}
-
-// 刷新日志
-const refreshLogs = async () => {
-  try {
-    const res = await fetchLogs()
-    // 只显示最新的100行以优化性能
-    logs.value = res.logs.slice(-100)
-    // 自动滚动到底部
-    await nextTick()
-    if (logContainerRef.value) {
-      logContainerRef.value.scrollTop = logContainerRef.value.scrollHeight
-    }
-  } catch (err) {
-    console.error('获取日志失败', err)
-  }
-}
-
-// 打开日志弹窗
-const openLogDialog = () => {
-  logDialogVisible.value = true
-  refreshLogs()
-  logInterval = setInterval(refreshLogs, 5000)
-}
-
-// 关闭日志弹窗
-const closeLogDialog = () => {
-  logDialogVisible.value = false
-  if (logInterval) {
-    clearInterval(logInterval)
-    logInterval = null
   }
 }
 
@@ -600,7 +666,25 @@ const editorContainer = ref<HTMLElement>()
 // 初始化编辑器
 const initEditor = async () => {
   if (editor) return // 已经初始化
+  const highlighter = await createHighlighter({
+    themes: [
+      'one-light',
+      'one-dark-pro'
+    ],
+    langs: [
+      'javascript',
+      'typescript',
+      'vue',
+      'python'
+    ],
+  })
+  monaco.languages.register({ id: 'vue' })
+  monaco.languages.register({ id: 'typescript' })
+  monaco.languages.register({ id: 'javascript' })
+  monaco.languages.register({ id: 'python' })
 
+    // Register the themes from Shiki, and provide syntax highlighting for Monaco.
+    shikiToMonaco(highlighter, monaco)
   if (!editorContainer.value) {
     console.error('编辑器容器未找到')
     ElMessage.error('编辑器容器未找到')
@@ -609,10 +693,10 @@ const initEditor = async () => {
 
   try {
     console.log('开始初始化编辑器，容器:', editorContainer.value)
-    const theme = isDark.value ? 'vs-dark' : 'vs'
+    const theme = isDark.value ? 'one-dark-pro' : 'one-light'
+    // 创建编辑器时不指定 model，后续通过 setModel 设置
     editor = monaco.editor.create(editorContainer.value, {
-      value: '',
-      language: 'plaintext',
+      model: null,
       theme: theme,
       fontSize: 14,
       fontFamily: "'Consolas', 'Monaco', 'Courier New', monospace",
@@ -626,16 +710,7 @@ const initEditor = async () => {
       lineDecorationsWidth: 10,
       lineNumbersMinChars: 5
     })
-
-    console.log('编辑器初始化成功:', editor)
-
-    // 监听编辑器内容变化
-    editor.onDidChangeModelContent(() => {
-      if (!ignoreNextChange) {
-        isContentModified.value = true
-      }
-      ignoreNextChange = false // 每次重置标志
-    })
+    console.log('编辑器初始化完成，主题:', theme)
 
     // 快捷键保存（Ctrl+S）
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
@@ -649,16 +724,14 @@ const initEditor = async () => {
 }
 
 onMounted(async () => {
-  // 动态导入Monaco
-  if (!monaco) {
-    try {
-      monaco = await import('monaco-editor')
-      console.log('Monaco加载成功')
-    } catch (error) {
-      console.error('Monaco导入失败:', error)
-      ElMessage.error('编辑器加载失败')
-      return
-    }
+  // 使用loader加载Monaco
+  try {
+    monaco = await loader.init()
+    console.log('Monaco加载成功')
+  } catch (error) {
+    console.error('Monaco加载失败:', error)
+    ElMessage.error('编辑器加载失败')
+    return
   }
 
   // 等待DOM更新完成
@@ -681,7 +754,8 @@ onMounted(async () => {
   // 监听主题变化，更新编辑器主题
   const unwatch = watch(isDark, (newVal) => {
     if (editor && monaco) {
-      const newTheme = newVal ? 'vs-dark' : 'vs'
+      const newTheme = newVal ? 'one-dark-pro' : 'one-light'
+      console.log('切换主题为:', newTheme)
       monaco.editor.setTheme(newTheme)
     }
   })
@@ -698,83 +772,8 @@ onBeforeUnmount(() => {
     editor.dispose()
     editor = null
   }
+  // 销毁所有Model
+  modelMap.forEach(model => model.dispose())
+  modelMap.clear()
 })
 </script>
-
-<style scoped lang="scss">
-.dark-mode {
-  :deep(.el-card__body) {
-    @apply flex flex-col flex-1;
-  }
-
-  :deep(.el-tree) {
-    @apply bg-transparent text-gray-300 py-2;
-
-    .el-tree-node__content {
-      @apply h-8 hover:bg-[#3e3e3e] rounded transition-all my-0.75 mx-1.5 pr-2;
-
-      &:hover {
-        @apply translate-x-0.5;
-      }
-    }
-
-    .el-tree-node.is-current > .el-tree-node__content {
-      @apply bg-blue-700 text-white rounded font-medium;
-    }
-
-    .el-tree-node__label {
-      @apply text-xs font-medium ml-1.5;
-    }
-
-    .el-icon {
-      @apply text-base flex-shrink-0;
-    }
-
-    .el-tree-node__expand-icon {
-      @apply w-5 text-center;
-    }
-  }
-}
-
-.light-mode {
-  :deep(.el-card__body) {
-    @apply flex flex-col flex-1;
-  }
-
-  :deep(.el-tree) {
-    @apply bg-white text-gray-900 py-2;
-
-    .el-tree-node__content {
-      @apply h-8 hover:bg-gray-100 rounded transition-all my-0.75 mx-1.5 pr-2;
-
-      &:hover {
-        @apply translate-x-0.5;
-      }
-    }
-
-    .el-tree-node.is-current > .el-tree-node__content {
-      @apply bg-blue-100 text-blue-900 rounded font-medium;
-    }
-
-    .el-tree-node__label {
-      @apply text-xs font-medium ml-1.5;
-    }
-
-    .el-icon {
-      @apply text-base flex-shrink-0;
-    }
-
-    .el-tree-node__expand-icon {
-      @apply w-5 text-center;
-    }
-  }
-}
-
-.tree-dark {
-  @apply bg-transparent text-gray-300;
-}
-
-.tree-light {
-  @apply bg-white text-gray-900;
-}
-</style>

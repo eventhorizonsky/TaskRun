@@ -2,9 +2,11 @@ import request from '@/utils/http'
 
 /**
  * 列出目录下的文件和文件夹
+ * @param path 目录路径
+ * @returns 文件列表数据
  */
 export function fetchListFiles(path: string = '') {
-  return request.get({
+  return request.get<Api.Files.ListFilesData>({
     url: '/api/files/list',
     params: { path }
   })
@@ -12,9 +14,11 @@ export function fetchListFiles(path: string = '') {
 
 /**
  * 读取文件内容
+ * @param path 文件路径
+ * @returns 文件内容数据
  */
 export function fetchReadFile(path: string) {
-  return request.get({
+  return request.get<Api.Files.ReadFileData>({
     url: '/api/files/read',
     params: { path }
   })
@@ -22,30 +26,36 @@ export function fetchReadFile(path: string) {
 
 /**
  * 写入文件内容
+ * @param params 写入参数
+ * @returns 写入结果
  */
-export function fetchWriteFile(path: string, content: string) {
-  return request.post({
+export function fetchWriteFile(params: Api.Files.WriteFileParams) {
+  return request.post<Api.Files.FileOperationData>({
     url: '/api/files/write',
-    data: { path, content }
+    data: params
   })
 }
 
 /**
  * 删除文件或目录
+ * @param params 删除参数
+ * @returns 删除结果
  */
-export function fetchDeleteFile(path: string) {
-  return request.delete({
+export function fetchDeleteFile(params: Api.Files.DeleteFileParams) {
+  return request.del<Api.Files.FileOperationData>({
     url: '/api/files/delete',
-    data: { path }
+    data: params
   })
 }
 
 /**
  * 创建文件或目录
+ * @param params 创建参数
+ * @returns 创建结果
  */
-export function fetchCreateFile(path: string, isDir: boolean = false) {
-  return request.post({
+export function fetchCreateFile(params: Api.Files.CreateFileParams) {
+  return request.post<Api.Files.FileOperationData>({
     url: '/api/files/create',
-    data: { path, is_dir: isDir }
+    data: params
   })
 }
