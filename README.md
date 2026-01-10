@@ -2,8 +2,8 @@
 
 ![TaskRun](https://socialify.git.ci/eventhorizonsky/TaskRun/image?description=1&font=Bitter&issues=1&language=1&logo=&name=1&owner=1&pulls=1&stargazers=1&theme=Auto)
 
-<!-- PROJECT LOGO -->
 <br />
+
 ## 项目简介
 
 这是一个基于 Funboost 开发的 Python 任务管理程序。前后端分离架构，后端使用 FastAPI，前端使用 Vue.js。项目依赖 MySQL 和 Redis 作为中间件，用于任务队列管理和数据存储。
